@@ -404,17 +404,21 @@ function flatCard(ctx,w,h,R,c){
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
-  const m=c.markImage&&c.markImage();
+  const m=c.art&&cardArt[c.art];
   if(m&&m.complete&&m.naturalWidth){
-    const sc=Math.min(w*.62/m.naturalWidth,h*.74/m.naturalHeight);
-    const mw=m.naturalWidth*sc,mh=m.naturalHeight*sc;
-    ctx.drawImage(m,w*.06,(h-mh)/2,mw,mh);
+    if(c.artPos==="br"){
+      const mh=h*.62,mw=mh*m.naturalWidth/m.naturalHeight;
+      ctx.drawImage(m,w-mw-w*.06,h-mh-h*.07,mw,mh);
+    }else{
+      const sc=Math.min(w*.62/m.naturalWidth,h*.74/m.naturalHeight);
+      const mw=m.naturalWidth*sc,mh=m.naturalHeight*sc;
+      ctx.drawImage(m,w*.06,(h-mh)/2,mw,mh);
+    }
   }
 }
-const SUICA={base:"#DFDFDD",dot:"#FFFFFF",dotA:.055};
-let pasmoMark=null;
-const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,
-  markImage:function(){return pasmoMark}};
+const cardArt={};
+const SUICA={base:"#DFDFDD",dot:"#FFFFFF",dotA:.055,art:"suica",artPos:"br"};
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:"pasmo"};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
@@ -770,16 +774,16 @@ document.getElementById("export").addEventListener("click",function(){
   });
 })();
 
-/* ---------- PASMO wordmark ---------- */
-(function(){
+/* ---------- card artwork ---------- */
+[["pasmo","pasmo.png"],["suica","suica-penguin.png"]].forEach(function(e){
   const img=new Image();
   img.onload=function(){
-    pasmoMark=img;presetCacheKey=null;
+    cardArt[e[0]]=img;presetCacheKey=null;
     repaintThumbs.forEach(function(f){f()});
     render();
   };
-  img.src="pasmo.png";
-})();
+  img.src=e[1];
+});
 
 /* ---------- boot ---------- */
 syncCorner();
