@@ -206,12 +206,6 @@ input[type=color]{
   font-size:12px;line-height:1.5;color:var(--ink-2);
   border-left:2px solid var(--foil-line);padding-left:10px;margin:0;
 }
-.status{
-  font-family:var(--mono);font-size:11px;min-height:16px;color:var(--ink-3);
-  overflow-wrap:anywhere;
-}
-.status[data-tone="ok"]{color:var(--foil)}
-.status[data-tone="err"]{color:var(--danger)}
 
 .hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
@@ -351,13 +345,7 @@ input[type=color]{
         </div>
       </details>
 
-      <details class="mod" open>
-        <summary>출력</summary>
-        <div class="mod-body">
-          <button class="btn btn-foil btn-wide" id="export">PNG 내보내기 · 1536×969</button>
-          <p class="status" id="status" role="status"></p>
-        </div>
-      </details>
+      <button class="btn btn-foil btn-wide" id="export">PNG 내보내기 · 1536×969</button>
     </aside>
   </div>
 </div>
@@ -738,15 +726,15 @@ const fileInput=document.getElementById("file");
 document.getElementById("pick").addEventListener("click",function(){fileInput.click()});
 fileInput.addEventListener("change",function(){if(fileInput.files[0])loadFile(fileInput.files[0])});
 function loadFile(file){
-  if(!file.type.startsWith("image/")){say("이미지 파일이 아닙니다.","err");return}
+  if(!file.type.startsWith("image/"))return;
   const url=URL.createObjectURL(file),img=new Image();
   img.onload=function(){
     state.photo=img;state.mode="photo";
     state.ox=0;state.oy=0;
     [].forEach.call(tray.querySelectorAll(".preset"),function(n){n.setAttribute("aria-pressed",false)});
-    render();say("사진을 프레임에 맞췄습니다.","ok");
+    render();
   };
-  img.onerror=function(){say("이 이미지를 열 수 없습니다.","err");URL.revokeObjectURL(url)};
+  img.onerror=function(){URL.revokeObjectURL(url)};
   img.src=url;
 }
 const bed=document.getElementById("bed");
@@ -781,40 +769,24 @@ card.addEventListener("wheel",function(e){
 },{passive:false});
 
 /* ---------- export ---------- */
-const statusEl=document.getElementById("status");
-let statusTimer=null;
-function say(msg,tone){
-  statusEl.textContent=msg;statusEl.dataset.tone=tone||"";
-  clearTimeout(statusTimer);
-  statusTimer=setTimeout(function(){statusEl.textContent="";statusEl.dataset.tone=""},6000);
-}
 function safeName(){
   const p=byId[state.preset];
   const n=((p&&p.name)||state.preset).replace(/[\\/:*?"<>|]/g,"-").trim();
   return "aircard-template-"+n+".png";
 }
 document.getElementById("export").addEventListener("click",function(){
-  const btn=this;btn.disabled=true;say("PNG 인코딩 중…");
+  const btn=this;btn.disabled=true;
   card.toBlob(async function(blob){
-    if(!blob){btn.disabled=false;say("인코딩에 실패했습니다. 다시 시도해 주세요.","err");return}
+    if(!blob){btn.disabled=false;return}
     const name=safeName();
     let dl=null;
     try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(err){dl=null}
     if(dl){
-      try{
-        const res=await dl.save({filename:name,data:blob});
-        say(res.status==="delivered"?"파일을 전달했습니다.":"저장했습니다 · "+name,"ok");
-      }catch(err){
-        const c=err&&err.code;
-        if(c==="declined")say("저장을 취소했습니다.");
-        else if(c==="rate_limited")say("요청이 몰렸습니다. 잠시 후 다시 눌러 주세요.","err");
-        else say("저장할 수 없습니다"+(c?" ("+c+")":"")+".","err");
-      }
+      try{await dl.save({filename:name,data:blob});}catch(err){}
     }else{
       const url=URL.createObjectURL(blob),a=document.createElement("a");
       a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
       setTimeout(function(){URL.revokeObjectURL(url)},4000);
-      say("내려받는 중 · "+name,"ok");
     }
     btn.disabled=false;
   },"image/png");
