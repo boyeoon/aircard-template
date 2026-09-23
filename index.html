@@ -419,95 +419,18 @@ function midnight(ctx,w,h,R){
     ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill();}
   ctx.restore();
 }
-/* Japanese IC transit cards (Suica / PASMO).
-   실제 카드의 배색·웨이브 형태·워드마크 배치를 따라 그립니다.
-   마스코트 일러스트(스이카 펭귄, 파스모 로봇)는 별개 저작물이라 포함하지 않습니다. */
-function rrect(ctx,x,y,w,h,r){
-  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,w,h,r);return}
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
-}
+/* Japanese IC transit cards (Suica / PASMO) — 카드 배색만 단색으로 씁니다. */
 function transitCard(ctx,w,h,R,c){
-  /* 1 — flat base field */
   ctx.fillStyle=c.base;ctx.fillRect(0,0,w,h);
-
-  /* 2 — IC card print texture */
   ctx.save();ctx.globalAlpha=c.dotA;ctx.fillStyle=c.dot;
   for(let y=0;y<h;y+=16){
     const off=(y/16)%2?8:0;
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
-
-  /* 3 — the signature ribbon sweeping up to the right */
-  ctx.beginPath();
-  ctx.moveTo(-30,h*.95);
-  ctx.bezierCurveTo(w*.30,h*.88,w*.52,h*.50,w+30,h*.28);
-  ctx.lineTo(w+30,h*.55);
-  ctx.bezierCurveTo(w*.55,h*.76,w*.32,h*1.10,-30,h*1.18);
-  ctx.closePath();
-  ctx.fillStyle=c.ribbon;ctx.fill();
-
-  /* 4 — thin echo above it */
-  ctx.beginPath();
-  ctx.moveTo(-30,h*.80);
-  ctx.bezierCurveTo(w*.30,h*.73,w*.52,h*.36,w+30,h*.14);
-  ctx.lineTo(w+30,h*.21);
-  ctx.bezierCurveTo(w*.52,h*.43,w*.30,h*.80,-30,h*.87);
-  ctx.closePath();
-  ctx.fillStyle=c.echo;ctx.fill();
-
-  /* 5 — wordmark, top-left */
-  ctx.save();
-  ctx.fillStyle=c.markColor;
-  ctx.textAlign="left";ctx.textBaseline="alphabetic";
-  ctx.shadowColor=c.markShadow;ctx.shadowBlur=h*.028;ctx.shadowOffsetY=h*.006;
-  ctx.font=c.markStyle+" "+Math.round(h*c.markSize)+'px "'+c.markFont+'", sans-serif';
-  if(c.markTrack){
-    let x=w*.062;
-    c.mark.split("").forEach(function(ch){
-      ctx.fillText(ch,x,h*.215);x+=ctx.measureText(ch).width+h*c.markTrack;
-    });
-  }else{
-    ctx.fillText(c.mark,w*.062,h*.215);
-  }
-  ctx.restore();
-
-  /* 6 — IC mark, bottom-right */
-  const bw=h*.20,bh=h*.115,bx=w-bw-w*.055,by=h-bh-h*.11;
-  ctx.save();
-  ctx.fillStyle=c.icBg;
-  rrect(ctx,bx,by,bw,bh,bh*.30);ctx.fill();
-  ctx.fillStyle=c.icFg;
-  ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.font='700 '+Math.round(bh*.58)+'px "Archivo", sans-serif';
-  ctx.fillText("IC",bx+bw*.34,by+bh/2);
-  ctx.strokeStyle=c.icFg;ctx.lineWidth=bh*.07;ctx.lineCap="round";
-  for(let i=0;i<3;i++){
-    const r=bh*(.16+i*.11);
-    ctx.beginPath();
-    ctx.arc(bx+bw*.62,by+bh/2,r,-Math.PI/3,Math.PI/3);
-    ctx.stroke();
-  }
-  ctx.restore();
 }
-const SUICA={
-  base:"#12A44A",
-  dot:"#FFFFFF",dotA:.055,
-  ribbon:"rgba(255,255,255,.94)",echo:"rgba(255,255,255,.40)",
-  markColor:"#FFFFFF",markShadow:"rgba(0,0,0,.22)",
-  icBg:"#FFFFFF",icFg:"#04632A",
-  mark:"Suica",markFont:"Archivo",markStyle:"700",markSize:.145,markTrack:0
-};
-const PASMO={
-  base:"#DCDCDA",
-  dot:"#6E6E6A",dotA:.05,
-  ribbon:"rgba(227,52,139,.95)",echo:"rgba(227,52,139,.34)",
-  markColor:"#D4157E",markShadow:"rgba(0,0,0,.10)",
-  icBg:"#E3348B",icFg:"#FFFFFF",
-  mark:"PASMO",markFont:"Archivo",markStyle:"800",markSize:.125,markTrack:.018
-};
+const SUICA={base:"#12A44A",dot:"#FFFFFF",dotA:.055};
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
