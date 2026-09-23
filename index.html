@@ -478,7 +478,8 @@ function flatCard(ctx,w,h,R,c){
   ctx.restore();
   const m=c.markImage&&c.markImage();
   if(m&&m.complete&&m.naturalWidth){
-    const mw=w*.60,mh=mw*m.naturalHeight/m.naturalWidth;
+    const sc=Math.min(w*.62/m.naturalWidth,h*.74/m.naturalHeight);
+    const mw=m.naturalWidth*sc,mh=m.naturalHeight*sc;
     ctx.drawImage(m,(w-mw)/2,(h-mh)/2,mw,mh);
   }
 }
