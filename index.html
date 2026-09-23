@@ -262,10 +262,6 @@ input[type=color]{
           <button class="btn btn-wide" id="pick">사진 불러오기</button>
           <input type="file" id="file" class="hidden-file" accept="image/*">
           <p class="note">드래그 앤 드롭도 됩니다. 사진은 1536×969 프레임에 <b>꽉 채우기(cover)</b>로 배치되고, 넘치는 부분은 잘립니다.</p>
-          <div class="field" id="solid-field" hidden>
-            <label for="solid">단색</label>
-            <input type="color" id="solid" value="#1B2733">
-          </div>
           <button class="btn btn-wide" id="srcswap" hidden>프리셋으로 전환</button>
         </div>
       </details>
@@ -430,100 +426,55 @@ function midnight(ctx,w,h,R){
     ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill();}
   ctx.restore();
 }
-function carbon(ctx,w,h){
-  ctx.fillStyle="#141619";ctx.fillRect(0,0,w,h);
-  const t=24,tile=document.createElement("canvas");tile.width=tile.height=t*2;
-  const c=tile.getContext("2d");
-  c.fillStyle="#1B1E23";c.fillRect(0,0,t*2,t*2);
-  c.fillStyle="#0F1113";c.fillRect(0,0,t,t);c.fillRect(t,t,t,t);
-  const hl=c.createLinearGradient(0,0,t*2,t*2);
-  hl.addColorStop(0,"rgba(255,255,255,.09)");hl.addColorStop(1,"rgba(255,255,255,0)");
-  c.fillStyle=hl;c.fillRect(0,0,t*2,t*2);
-  ctx.fillStyle=ctx.createPattern(tile,"repeat");ctx.fillRect(0,0,w,h);
-  const v=ctx.createRadialGradient(w*.5,h*.35,60,w*.5,h*.5,w*.72);
-  v.addColorStop(0,"rgba(255,255,255,.12)");v.addColorStop(1,"rgba(0,0,0,.35)");
-  ctx.fillStyle=v;ctx.fillRect(0,0,w,h);
-}
-function blueprint(ctx,w,h){
-  ctx.fillStyle="#0E2A47";ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle="rgba(150,200,240,.16)";ctx.lineWidth=1.5;
-  for(let x=0;x<=w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
-  for(let y=0;y<=h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-  ctx.strokeStyle="rgba(170,215,250,.34)";ctx.lineWidth=2;
-  for(let x=0;x<=w;x+=160){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
-  for(let y=0;y<=h;y+=160){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-  const g=ctx.createLinearGradient(0,0,w,h);
-  g.addColorStop(0,"rgba(8,22,40,0)");g.addColorStop(1,"rgba(4,12,24,.6)");
+/* Japanese IC transit cards — 실제 카드의 배색만 참고한 추상 그래픽입니다.
+   로고·마스코트 등 상표 요소는 포함하지 않습니다. */
+function transitCard(ctx,w,h,R,c){
+  const g=ctx.createLinearGradient(0,0,w*.3,h);
+  g.addColorStop(0,c.light);g.addColorStop(.48,c.mid);g.addColorStop(1,c.deep);
   ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-}
-function aurora(ctx,w,h){
-  ctx.fillStyle="#070B14";ctx.fillRect(0,0,w,h);
-  const blobs=[[.18,.26,"#2E6BFF"],[.72,.2,"#12D6A0"],[.5,.82,"#7A3DF5"],[.92,.66,"#1FB8D4"],[.05,.9,"#0D3B8A"]];
-  ctx.globalCompositeOperation="lighter";
-  blobs.forEach(function(b){
-    const g=ctx.createRadialGradient(w*b[0],h*b[1],0,w*b[0],h*b[1],w*.52);
-    g.addColorStop(0,b[2]);g.addColorStop(.55,b[2]+"44");g.addColorStop(1,"rgba(0,0,0,0)");
-    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-  });
-  ctx.globalCompositeOperation="source-over";
-}
-function ember(ctx,w,h){
-  const g=ctx.createLinearGradient(0,h,w,0);
-  g.addColorStop(0,"#3A0B3D");g.addColorStop(.42,"#B4245C");
-  g.addColorStop(.75,"#F2672E");g.addColorStop(1,"#FFC24A");
-  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-  const v=ctx.createRadialGradient(w*.78,h*.18,20,w*.78,h*.18,w*.7);
-  v.addColorStop(0,"rgba(255,232,180,.5)");v.addColorStop(1,"rgba(0,0,0,0)");
-  ctx.fillStyle=v;ctx.fillRect(0,0,w,h);
-}
-function terrazzo(ctx,w,h,R){
-  ctx.fillStyle="#EDE7DC";ctx.fillRect(0,0,w,h);
-  const cols=["#2F4858","#C3553F","#D9A441","#5F7A5A","#8C8177","#1F2A33"];
-  for(let i=0;i<420;i++){
-    const x=R()*w,y=R()*h,n=3+((R()*4)|0),rad=R()*26+7;
-    ctx.fillStyle=cols[(R()*cols.length)|0];
-    ctx.globalAlpha=.9;ctx.beginPath();
-    for(let k=0;k<n;k++){const a=k/n*6.2832+R()*.6,rr=rad*(.6+R()*.6);
-      const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;
-      k?ctx.lineTo(px,py):ctx.moveTo(px,py);}
-    ctx.closePath();ctx.fill();
+
+  const gl=ctx.createRadialGradient(w*.24,h*.16,20,w*.24,h*.16,w*.66);
+  gl.addColorStop(0,"rgba(255,255,255,.34)");gl.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.fillStyle=gl;ctx.fillRect(0,0,w,h);
+
+  ctx.save();ctx.globalAlpha=.06;ctx.fillStyle="#FFFFFF";
+  for(let y=0;y<h;y+=16){
+    const off=(y/16)%2?8:0;
+    for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
-  ctx.globalAlpha=1;
+  ctx.restore();
+
+  function band(t,b,fill){
+    ctx.beginPath();
+    ctx.moveTo(-24,h*t);
+    ctx.bezierCurveTo(w*.34,h*(t-.18),w*.66,h*(t+.22),w+24,h*(t-.10));
+    ctx.lineTo(w+24,h*(b-.10));
+    ctx.bezierCurveTo(w*.66,h*(b+.22),w*.34,h*(b-.18),-24,h*b);
+    ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+  }
+  band(.62,.80,"rgba(255,255,255,.90)");
+  band(.80,.90,"rgba(255,255,255,.30)");
+
+  const sh=ctx.createLinearGradient(0,0,0,h*.55);
+  sh.addColorStop(0,"rgba(255,255,255,.16)");sh.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.fillStyle=sh;ctx.fillRect(0,0,w,h*.55);
 }
-function linen(ctx,w,h,R){
-  ctx.fillStyle="#C9C0AE";ctx.fillRect(0,0,w,h);
-  ctx.lineWidth=2;
-  for(let y=0;y<h;y+=4){ctx.strokeStyle="rgba(255,255,255,"+(R()*.16).toFixed(3)+")";
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-  for(let x=0;x<w;x+=4){ctx.strokeStyle="rgba(90,80,64,"+(R()*.14).toFixed(3)+")";
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
-  const g=ctx.createRadialGradient(w*.4,h*.4,40,w*.5,h*.5,w*.75);
-  g.addColorStop(0,"rgba(255,250,240,.3)");g.addColorStop(1,"rgba(70,62,50,.28)");
-  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-}
-function solid(ctx,w,h){
-  ctx.fillStyle=state.solid;ctx.fillRect(0,0,w,h);
-  const g=ctx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,"rgba(255,255,255,.13)");g.addColorStop(.5,"rgba(255,255,255,0)");
-  g.addColorStop(1,"rgba(0,0,0,.18)");
-  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-}
+const SUICA={light:"#A9E5C0",mid:"#2FAE60",deep:"#075E2E"};
+const PASMO={light:"#FBBBD8",mid:"#E9579D",deep:"#A80F63"};
+
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
   {id:"midnight",name:"미드나이트 포일",draw:midnight,seed:19},
-  {id:"carbon",name:"카본 위브",draw:carbon,seed:3},
-  {id:"aurora",name:"오로라",draw:aurora,seed:11},
-  {id:"ember",name:"엠버",draw:ember,seed:5},
-  {id:"blueprint",name:"블루프린트",draw:blueprint,seed:23},
-  {id:"terrazzo",name:"테라조",draw:terrazzo,seed:41},
-  {id:"linen",name:"리넨",draw:linen,seed:29},
-  {id:"solid",name:"단색",draw:solid,seed:2}
+  {id:"suica",name:"스이카",seed:13,
+    draw:function(ctx,w,h,R){transitCard(ctx,w,h,R,SUICA)}},
+  {id:"pasmo",name:"파스모",seed:17,
+    draw:function(ctx,w,h,R){transitCard(ctx,w,h,R,PASMO)}}
 ];
 const byId={};PRESETS.forEach(function(p){byId[p.id]=p});
 
 /* ---------- state ---------- */
 const state={
-  mode:"preset", preset:"titanium", solid:"#1B2733",
+  mode:"preset", preset:"titanium",
   photo:null,
   zoom:1, rot:0, ox:0, oy:0,
   bri:100, con:100, sat:100, blur:0,
@@ -559,7 +510,7 @@ function drawBase(){
     bctx.drawImage(img,-iw*sc/2,-ih*sc/2,iw*sc,ih*sc);
     bctx.restore();
   }else{
-    const key=state.preset+"|"+(state.preset==="solid"?state.solid:"");
+    const key=state.preset;
     if(presetCacheKey!==key){
       const p=byId[state.preset];
       const c=document.createElement("canvas");c.width=W;c.height=H;
@@ -639,7 +590,6 @@ PRESETS.forEach(function(p){
   b.appendChild(c);b.appendChild(s);
   b.addEventListener("click",function(){
     state.preset=p.id;state.mode="preset";
-    document.getElementById("solid-field").hidden=(p.id!=="solid");
     syncSrcSwap();
     document.getElementById("preset-name").textContent=p.name;
     [].forEach.call(tray.children,function(n){n.setAttribute("aria-pressed",n===b)});
@@ -693,7 +643,6 @@ document.getElementById("v-zoom").textContent="100%";
 
 document.getElementById("tint").addEventListener("input",function(e){state.tint=e.target.value;render()});
 document.getElementById("tcolor").addEventListener("input",function(e){state.tcolor=e.target.value;render()});
-document.getElementById("solid").addEventListener("input",function(e){state.solid=e.target.value;presetCacheKey=null;render()});
 document.getElementById("text").addEventListener("input",function(e){state.text=e.target.value;render()});
 document.getElementById("tfont").addEventListener("change",function(e){state.tfont=e.target.value;render()});
 document.getElementById("tshadow").addEventListener("change",function(e){state.tshadow=e.target.checked;render()});
