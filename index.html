@@ -443,11 +443,11 @@ function transitCard(ctx,w,h,R,c){
 
   /* 2 — upper-left light */
   const gl=ctx.createRadialGradient(w*.18,h*.12,10,w*.18,h*.12,w*.72);
-  gl.addColorStop(0,"rgba(255,255,255,.30)");gl.addColorStop(1,"rgba(255,255,255,0)");
+  gl.addColorStop(0,c.glow);gl.addColorStop(1,"rgba(255,255,255,0)");
   ctx.fillStyle=gl;ctx.fillRect(0,0,w,h);
 
   /* 3 — IC card print texture */
-  ctx.save();ctx.globalAlpha=.055;ctx.fillStyle="#FFFFFF";
+  ctx.save();ctx.globalAlpha=c.dotA;ctx.fillStyle=c.dot;
   for(let y=0;y<h;y+=16){
     const off=(y/16)%2?8:0;
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
@@ -461,7 +461,7 @@ function transitCard(ctx,w,h,R,c){
   ctx.lineTo(w+30,h*.55);
   ctx.bezierCurveTo(w*.55,h*.76,w*.32,h*1.10,-30,h*1.18);
   ctx.closePath();
-  ctx.fillStyle="rgba(255,255,255,.94)";ctx.fill();
+  ctx.fillStyle=c.ribbon;ctx.fill();
 
   /* 5 — thin echo above it */
   ctx.beginPath();
@@ -470,13 +470,13 @@ function transitCard(ctx,w,h,R,c){
   ctx.lineTo(w+30,h*.21);
   ctx.bezierCurveTo(w*.52,h*.43,w*.30,h*.80,-30,h*.87);
   ctx.closePath();
-  ctx.fillStyle="rgba(255,255,255,.40)";ctx.fill();
+  ctx.fillStyle=c.echo;ctx.fill();
 
   /* 6 — wordmark, top-left */
   ctx.save();
-  ctx.fillStyle="#FFFFFF";
+  ctx.fillStyle=c.markColor;
   ctx.textAlign="left";ctx.textBaseline="alphabetic";
-  ctx.shadowColor="rgba(0,0,0,.22)";ctx.shadowBlur=h*.028;ctx.shadowOffsetY=h*.006;
+  ctx.shadowColor=c.markShadow;ctx.shadowBlur=h*.028;ctx.shadowOffsetY=h*.006;
   ctx.font=c.markStyle+" "+Math.round(h*c.markSize)+'px "'+c.markFont+'", sans-serif';
   if(c.markTrack){
     let x=w*.062;
@@ -491,13 +491,13 @@ function transitCard(ctx,w,h,R,c){
   /* 7 — IC mark, bottom-right */
   const bw=h*.20,bh=h*.115,bx=w-bw-w*.055,by=h-bh-h*.11;
   ctx.save();
-  ctx.fillStyle="rgba(255,255,255,.94)";
+  ctx.fillStyle=c.icBg;
   rrect(ctx,bx,by,bw,bh,bh*.30);ctx.fill();
-  ctx.fillStyle=c.deep;
+  ctx.fillStyle=c.icFg;
   ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.font='700 '+Math.round(bh*.58)+'px "Archivo", sans-serif';
   ctx.fillText("IC",bx+bw*.34,by+bh/2);
-  ctx.strokeStyle=c.deep;ctx.lineWidth=bh*.07;ctx.lineCap="round";
+  ctx.strokeStyle=c.icFg;ctx.lineWidth=bh*.07;ctx.lineCap="round";
   for(let i=0;i<3;i++){
     const r=bh*(.16+i*.11);
     ctx.beginPath();
@@ -508,15 +508,27 @@ function transitCard(ctx,w,h,R,c){
 
   /* 8 — top sheen */
   const sh=ctx.createLinearGradient(0,0,0,h*.5);
-  sh.addColorStop(0,"rgba(255,255,255,.14)");sh.addColorStop(1,"rgba(255,255,255,0)");
+  sh.addColorStop(0,c.sheen);sh.addColorStop(1,"rgba(255,255,255,0)");
   ctx.fillStyle=sh;ctx.fillRect(0,0,w,h*.5);
 }
 const SUICA={
   light:"#8FDCAB",mid:"#12A44A",deep:"#04632A",
+  glow:"rgba(255,255,255,.30)",
+  dot:"#FFFFFF",dotA:.055,
+  ribbon:"rgba(255,255,255,.94)",echo:"rgba(255,255,255,.40)",
+  sheen:"rgba(255,255,255,.14)",
+  markColor:"#FFFFFF",markShadow:"rgba(0,0,0,.22)",
+  icBg:"rgba(255,255,255,.94)",icFg:"#04632A",
   mark:"Suica",markFont:"Archivo",markStyle:"700",markSize:.145,markTrack:0
 };
 const PASMO={
-  light:"#F8A9CE",mid:"#E3348B",deep:"#94095A",
+  light:"#DCDCDA",mid:"#DCDCDA",deep:"#DCDCDA",
+  glow:"rgba(255,255,255,.42)",
+  dot:"#6E6E6A",dotA:.05,
+  ribbon:"rgba(227,52,139,.95)",echo:"rgba(227,52,139,.34)",
+  sheen:"rgba(255,255,255,.20)",
+  markColor:"#D4157E",markShadow:"rgba(0,0,0,.10)",
+  icBg:"rgba(227,52,139,.95)",icFg:"#FFFFFF",
   mark:"PASMO",markFont:"Archivo",markStyle:"800",markSize:.125,markTrack:.018
 };
 
