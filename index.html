@@ -50,25 +50,15 @@ body{
 
 /* ---------- header ---------- */
 .masthead{
-  display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 28px;
   padding-bottom:16px;margin-bottom:22px;border-bottom:1px solid var(--line);
   position:relative;
 }
 .masthead::after{content:"";position:absolute;left:0;bottom:-1px;width:92px;height:2px;background:var(--foil-bg)}
-.brand{min-width:0}
 h1{
   margin:0;font-family:var(--display);font-size:clamp(26px,4.2vw,38px);
   font-weight:800;font-stretch:112%;letter-spacing:-.018em;line-height:1.02;
   text-wrap:balance;
 }
-.spec-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
-.chip{
-  font-family:var(--mono);font-size:11px;font-weight:500;
-  padding:5px 9px;border:1px solid var(--line);border-radius:6px;
-  background:var(--panel);color:var(--ink-2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.chip b{color:var(--ink);font-weight:600}
 
 /* ---------- layout ---------- */
 .shell{display:grid;grid-template-columns:minmax(0,1fr) 338px;gap:22px;align-items:start}
@@ -251,14 +241,7 @@ input[type=color]{
 
 <div class="wrap">
   <header class="masthead">
-    <div class="brand">
-      <h1>AirCard 스킨 프레스</h1>
-    </div>
-    <div class="spec-chips">
-      <span class="chip"><b>1536 × 969</b> px</span>
-      <span class="chip">비율 <b>1.5852</b></span>
-      <span class="chip">PNG · RGBA</span>
-    </div>
+    <h1>AirCard 스킨 프레스</h1>
   </header>
 
   <div class="shell">
