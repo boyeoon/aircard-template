@@ -480,7 +480,7 @@ function flatCard(ctx,w,h,R,c){
   if(m&&m.complete&&m.naturalWidth){
     const sc=Math.min(w*.62/m.naturalWidth,h*.74/m.naturalHeight);
     const mw=m.naturalWidth*sc,mh=m.naturalHeight*sc;
-    ctx.drawImage(m,(w-mw)/2,(h-mh)/2,mw,mh);
+    ctx.drawImage(m,w*.06,(h-mh)/2,mw,mh);
   }
 }
 let pasmoMark=null;
