@@ -418,8 +418,9 @@ function flatCard(ctx,w,h,R,c){
 }
 const cardArt={};
 const SUICA={base:"#DFDFDD",dot:"#FFFFFF",dotA:.055,art:[
+  {key:"suicafield",pos:"left"},
   {key:"suicalogo",pos:"tr",h:.13},
-  {key:"penguin",pos:"br",h:.527}
+  {key:"penguin",pos:"br",h:.465}
 ]};
 const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[{key:"pasmo",pos:"left"}]};
 
@@ -778,7 +779,7 @@ document.getElementById("export").addEventListener("click",function(){
 })();
 
 /* ---------- card artwork ---------- */
-[["pasmo","pasmo.png"],["penguin","suica-penguin.png"],["suicalogo","suica-logo.png"]].forEach(function(e){
+[["pasmo","pasmo.png"],["penguin","suica-penguin.png"],["suicalogo","suica-logo.png"],["suicafield","suica-field.png"]].forEach(function(e){
   const img=new Image();
   img.onload=function(){
     cardArt[e[0]]=img;presetCacheKey=null;
