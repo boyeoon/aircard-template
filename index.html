@@ -368,7 +368,6 @@ input[type=color]{
       <details class="mod" open>
         <summary>출력</summary>
         <div class="mod-body">
-          <label class="toggle"><input type="checkbox" id="g-corner" checked> 둥근 모서리로 깎아 내보내기</label>
           <div class="field">
             <div class="valrow"><label for="radius">모서리 반경</label><span class="val" id="v-radius">85 px</span></div>
             <input type="range" id="radius" min="0" max="180" value="85">
@@ -546,7 +545,7 @@ const state={
   photo:null,
   zoom:1, rot:0, ox:0, oy:0,
   bri:100, con:100, sat:100, blur:0,
-  round:true, radius:85,
+  radius:85,
   vig:18, grain:6, tint:"#0A1C2E", tinta:0,
   text:"AIRCARD", tfont:"Archivo", tpos:"bl", tsize:58, track:10,
   tcolor:"#F4F1EA", tshadow:true
@@ -626,7 +625,7 @@ function render(){
   }
   drawText();
 
-  if(state.round&&state.radius>0){
+  if(state.radius>0){
     ctx.save();
     ctx.globalCompositeOperation="destination-in";
     cornerPath(ctx,0,0,W,H,Math.min(state.radius,Math.min(W,H)/2));
@@ -644,7 +643,7 @@ function cornerPath(ctx,x,y,w,h,r){
 
 /* the element radius follows the pixels so the drop shadow matches */
 function syncCorner(){
-  const r=state.round?Math.min(state.radius,Math.min(W,H)/2):0;
+  const r=Math.min(state.radius,Math.min(W,H)/2);
   hold.style.setProperty("--cr",
     r?(r/W*100).toFixed(3)+"% / "+(r/H*100).toFixed(3)+"%":"0px");
 }
@@ -745,11 +744,6 @@ document.getElementById("tfont").addEventListener("change",function(e){state.tfo
 document.getElementById("tshadow").addEventListener("change",function(e){state.tshadow=e.target.checked;render()});
 
 const hold=document.getElementById("hold"),overlay=document.getElementById("overlay");
-document.getElementById("g-corner").addEventListener("change",function(e){
-  state.round=e.target.checked;
-  document.getElementById("radius").disabled=!state.round;
-  syncCorner();render();
-});
 (function(){
   const el=document.getElementById("radius"),out=document.getElementById("v-radius");
   el.addEventListener("input",function(){
