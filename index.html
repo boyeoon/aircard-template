@@ -490,9 +490,9 @@ const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
   {id:"midnight",name:"미드나이트 포일",draw:midnight,seed:19},
-  {id:"suica",name:"Suica",seed:13,
+  {id:"suica",name:"Suica",seed:13,noText:true,
     draw:function(ctx,w,h,R){transitCard(ctx,w,h,R,SUICA)}},
-  {id:"pasmo",name:"PASMO",seed:17,
+  {id:"pasmo",name:"PASMO",seed:17,noText:true,
     draw:function(ctx,w,h,R){flatCard(ctx,w,h,R,PASMO)}}
 ];
 const byId={};PRESETS.forEach(function(p){byId[p.id]=p});
@@ -580,7 +580,8 @@ function render(){
     ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
-  drawText();
+  const cur=byId[state.preset];
+  if(!(state.mode==="preset"&&cur&&cur.noText))drawText();
 
   {
     ctx.save();
