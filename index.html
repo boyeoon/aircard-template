@@ -489,9 +489,9 @@ const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
   {id:"midnight",name:"미드나이트 포일",draw:midnight,seed:19},
-  {id:"suica",name:"Suica",seed:13,noText:true,
+  {id:"suica",name:"Suica",seed:13,noText:true,noFx:true,
     draw:function(ctx,w,h,R){transitCard(ctx,w,h,R,SUICA)}},
-  {id:"pasmo",name:"PASMO",seed:17,noText:true,
+  {id:"pasmo",name:"PASMO",seed:17,noText:true,noFx:true,
     draw:function(ctx,w,h,R){flatCard(ctx,w,h,R,PASMO)}}
 ];
 const byId={};PRESETS.forEach(function(p){byId[p.id]=p});
@@ -546,32 +546,38 @@ function drawBase(){
 }
 
 function render(){
+  const cur=byId[state.preset];
+  /* 프리셋 원본 그대로 내보내는 카드: 보정·마감을 건너뛴다 */
+  const raw=state.mode==="preset"&&cur&&cur.noFx;
+
   drawBase();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,W,H);
   ctx.save();
   const f=[];
-  if(state.bri!==100)f.push("brightness("+state.bri+"%)");
-  if(state.con!==100)f.push("contrast("+state.con+"%)");
-  if(state.sat!==100)f.push("saturate("+state.sat+"%)");
-  if(state.blur>0)f.push("blur("+state.blur+"px)");
+  if(!raw){
+    if(state.bri!==100)f.push("brightness("+state.bri+"%)");
+    if(state.con!==100)f.push("contrast("+state.con+"%)");
+    if(state.sat!==100)f.push("saturate("+state.sat+"%)");
+    if(state.blur>0)f.push("blur("+state.blur+"px)");
+  }
   ctx.filter=f.length?f.join(" "):"none";
-  const o=state.blur>0?state.blur*2.5:0;
+  const o=f.length&&state.blur>0?state.blur*2.5:0;
   ctx.drawImage(base,-o,-o,W+o*2,H+o*2);
   ctx.restore();
 
-  if(state.tinta>0){
+  if(!raw&&state.tinta>0){
     ctx.save();ctx.globalAlpha=state.tinta/100;
     ctx.fillStyle=state.tint;ctx.fillRect(0,0,W,H);ctx.restore();
   }
-  if(state.vig>0){
+  if(!raw&&state.vig>0){
     const g=ctx.createRadialGradient(W/2,H/2,H*.28,W/2,H/2,W*.72);
     g.addColorStop(0,"rgba(0,0,0,0)");
     g.addColorStop(.62,"rgba(0,0,0,"+(state.vig/100*.32).toFixed(3)+")");
     g.addColorStop(1,"rgba(0,0,0,"+(state.vig/100).toFixed(3)+")");
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   }
-  if(state.grain>0){
+  if(!raw&&state.grain>0){
     ctx.save();
     ctx.globalAlpha=state.grain/100*.55;
     ctx.globalCompositeOperation="overlay";
@@ -579,7 +585,6 @@ function render(){
     ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
-  const cur=byId[state.preset];
   if(!(state.mode==="preset"&&cur&&cur.noText))drawText();
 
   {
