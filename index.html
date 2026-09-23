@@ -404,25 +404,22 @@ function flatCard(ctx,w,h,R,c){
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
+  /* x·y·h 는 카드 기준 비율. 폭은 원본 비율로 따라간다 */
   (c.art||[]).forEach(function(it){
     const m=cardArt[it.key];
     if(!m||!m.complete||!m.naturalWidth)return;
-    if(it.pos==="left"){
-      const sc=Math.min(w*.62/m.naturalWidth,h*.74/m.naturalHeight);
-      ctx.drawImage(m,w*.06,(h-m.naturalHeight*sc)/2,m.naturalWidth*sc,m.naturalHeight*sc);
-      return;
-    }
-    const mh=h*it.h,mw=mh*m.naturalWidth/m.naturalHeight;
-    ctx.drawImage(m,w-mw-w*.06,it.pos==="tr"?h*.07:h-mh-h*.07,mw,mh);
+    const ah=h*it.h,aw=ah*m.naturalWidth/m.naturalHeight;
+    ctx.drawImage(m,w*it.x,h*it.y,aw,ah);
   });
 }
 const cardArt={};
+/* 실제 Apple Wallet Suica 카드에서 실측한 비율 */
 const SUICA={base:"#DFDFDD",dot:"#FFFFFF",dotA:.055,art:[
-  {key:"suicafield",pos:"left"},
-  {key:"suicalogo",pos:"tr",h:.13},
-  {key:"penguin",pos:"br",h:.465}
+  {key:"suicafield",x:.0297,y:.0545,h:.8933},
+  {key:"suicalogo", x:.8032,y:.0558,h:.1515},
+  {key:"penguin",   x:.7590,y:.5273,h:.4158}
 ]};
-const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[{key:"pasmo",pos:"left"}]};
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[{key:"pasmo",x:.06,y:.13,h:.74}]};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
