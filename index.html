@@ -92,25 +92,6 @@ h1{
 }
 .bed.over .drop-hint{display:grid}
 
-/* readout strip */
-.readout{
-  display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);
-  border-radius:var(--r);background:var(--panel);overflow:hidden;
-}
-.readout div{
-  flex:1 1 128px;padding:9px 12px;border-right:1px solid var(--line-soft);min-width:0;
-}
-.readout div:last-child{border-right:0}
-.readout dt{
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 2px;
-}
-.readout dd{
-  margin:0;font-family:var(--mono);font-size:13px;font-weight:500;
-  color:var(--ink);font-variant-numeric:tabular-nums;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-
 /* preset tray */
 .tray{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:12px}
 .tray-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
@@ -263,14 +244,6 @@ input[type=color]{
           <div class="drop-hint">이미지를 놓으세요</div>
         </div>
       </div>
-
-      <dl class="readout">
-        <div><dt>출력 규격</dt><dd id="r-size">1536 × 969</dd></div>
-        <div><dt>소스</dt><dd id="r-src">프리셋 · 티타늄</dd></div>
-        <div><dt>원본 해상도</dt><dd id="r-nat">—</dd></div>
-        <div><dt>커버 배율</dt><dd id="r-scale">—</dd></div>
-        <div><dt>파일 크기</dt><dd id="r-bytes">—</dd></div>
-      </dl>
 
       <div class="tray">
         <div class="tray-head">
@@ -551,7 +524,7 @@ const byId={};PRESETS.forEach(function(p){byId[p.id]=p});
 /* ---------- state ---------- */
 const state={
   mode:"preset", preset:"titanium", solid:"#1B2733",
-  photo:null, photoName:"",
+  photo:null,
   zoom:1, rot:0, ox:0, oy:0,
   bri:100, con:100, sat:100, blur:0,
   vig:18, grain:6, tint:"#0A1C2E", tinta:0,
@@ -632,7 +605,6 @@ function render(){
     ctx.restore();
   }
   drawText();
-  updateReadout();
 }
 
 const POS=[["tl","tc","tr"],["ml","mc","mr"],["bl","bc","br"]];
@@ -652,20 +624,6 @@ function drawText(){
   ctx.fillStyle=state.tcolor;
   chars.forEach(function(ch){ctx.fillText(ch,x,y);x+=ctx.measureText(ch).width+tr});
   ctx.restore();
-}
-
-function updateReadout(){
-  const srcEl=document.getElementById("r-src"),natEl=document.getElementById("r-nat"),scEl=document.getElementById("r-scale");
-  if(state.mode==="photo"&&state.photo){
-    const iw=state.photo.naturalWidth,ih=state.photo.naturalHeight;
-    srcEl.textContent="사진 · "+(state.photoName||"unnamed");
-    natEl.textContent=iw+" × "+ih;
-    scEl.textContent=(Math.max(W/iw,H/ih)*state.zoom).toFixed(2)+"×";
-  }else{
-    srcEl.textContent="프리셋 · "+byId[state.preset].name;
-    natEl.textContent="벡터 생성";
-    scEl.textContent="1.00×";
-  }
 }
 
 /* ---------- preset thumbnails ---------- */
@@ -780,7 +738,7 @@ function loadFile(file){
   if(!file.type.startsWith("image/")){say("이미지 파일이 아닙니다.","err");return}
   const url=URL.createObjectURL(file),img=new Image();
   img.onload=function(){
-    state.photo=img;state.photoName=file.name;state.mode="photo";
+    state.photo=img;state.mode="photo";
     state.ox=0;state.oy=0;
     syncSrcSwap();
     [].forEach.call(tray.children,function(n){n.setAttribute("aria-pressed",false)});
@@ -837,7 +795,6 @@ document.getElementById("export").addEventListener("click",function(){
   const btn=this;btn.disabled=true;say("PNG 인코딩 중…");
   card.toBlob(async function(blob){
     if(!blob){btn.disabled=false;say("인코딩에 실패했습니다. 다시 시도해 주세요.","err");return}
-    document.getElementById("r-bytes").textContent=(blob.size/1024).toFixed(0)+" KB";
     const name=safeName();
     let dl=null;
     try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(err){dl=null}
