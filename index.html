@@ -1,4 +1,4 @@
-<title>AirCard 스킨 프레스</title>
+<title>cardwallet-template</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -198,7 +198,7 @@ input[type=color]{
 
 <div class="wrap">
   <header class="masthead">
-    <h1>AirCard 스킨 프레스</h1>
+    <h1>cardwallet-template</h1>
   </header>
 
   <div class="shell">
@@ -294,7 +294,7 @@ input[type=color]{
         <div class="mod-body">
           <div class="field">
             <label for="text">문구</label>
-            <input type="text" id="text" value="AIRCARD" maxlength="28" placeholder="비워두면 표시되지 않습니다">
+            <input type="text" id="text" value="CARDWALLET" maxlength="28" placeholder="비워두면 표시되지 않습니다">
           </div>
           <div class="field">
             <label for="tfont">서체</label>
@@ -490,7 +490,7 @@ const state={
   zoom:1, rot:0, ox:0, oy:0,
   bri:100, con:100, sat:100, blur:0,
   vig:18, grain:6, tint:"#0A1C2E", tinta:0,
-  text:"AIRCARD", tfont:"Archivo", tpos:"bl", tsize:58, track:10,
+  text:"CARDWALLET", tfont:"Archivo", tpos:"bl", tsize:58, track:10,
   tcolor:"#F4F1EA", tshadow:true
 };
 
@@ -752,7 +752,7 @@ card.addEventListener("wheel",function(e){
 function safeName(){
   const p=byId[state.preset];
   const n=((p&&p.name)||state.preset).replace(/[\\/:*?"<>|]/g,"-").trim();
-  return "aircard-template-"+n+".png";
+  return "cardwallet-template-"+n+".png";
 }
 document.getElementById("export").addEventListener("click",function(){
   const btn=this;btn.disabled=true;

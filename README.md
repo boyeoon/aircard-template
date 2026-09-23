@@ -1,10 +1,10 @@
-# AirCard Skin Template
+# cardwallet-template
 
 [AirCard](https://github.com/Mak5er/AirCard)를 사용해 Apple Wallet에 들어가는 스킨 템플릿 제작 사이트입니다.
 
 이 저장소는 그 입력 이미지를 만드는 도구일 뿐이고, AirCard와는 별개 프로젝트입니다.
 
-→ [사이트 주소](https://boyeoon.github.io/aircard-template/)
+→ [사이트 주소](https://boyeoon.github.io/cardwallet-template/)
 
 ---
 
