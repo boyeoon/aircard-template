@@ -476,8 +476,20 @@ function flatCard(ctx,w,h,R,c){
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
+  if(c.mark){
+    ctx.save();
+    ctx.fillStyle=c.markColor;ctx.textBaseline="middle";
+    const size=Math.round(h*.20),tr=size*.06;
+    ctx.font='800 '+size+'px "Archivo", sans-serif';
+    const chars=c.mark.split("");
+    let total=0;
+    chars.forEach(function(ch,i){total+=ctx.measureText(ch).width+(i<chars.length-1?tr:0)});
+    let x=(w-total)/2;
+    chars.forEach(function(ch){ctx.fillText(ch,x,h*.5);x+=ctx.measureText(ch).width+tr});
+    ctx.restore();
+  }
 }
-const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05};
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,mark:"PASMO",markColor:"#EB6DA5"};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
