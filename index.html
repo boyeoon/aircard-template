@@ -345,7 +345,7 @@ input[type=color]{
         </div>
       </details>
 
-      <button class="btn btn-foil btn-wide" id="export">.png로 내보내기</button>
+      <button class="btn btn-foil btn-wide" id="export">PNG로 내보내기</button>
     </aside>
   </div>
 </div>
@@ -419,7 +419,10 @@ const SUICA={base:"#DDDEDB",dot:"#FFFFFF",dotA:.055,art:[
   {key:"suicalogo", x:.8032,y:.0558,h:.1515},
   {key:"penguin",   x:.7590,y:.5273,h:.4158}
 ]};
-const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[{key:"pasmo",x:.06,y:.13,h:.74}]};
+/* PASMO_Card.svg 에서 실측한 비율 */
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[
+  {key:"pasmo",x:.1013,y:.2095,h:.5868}
+]};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
