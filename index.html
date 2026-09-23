@@ -426,41 +426,99 @@ function midnight(ctx,w,h,R){
     ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill();}
   ctx.restore();
 }
-/* Japanese IC transit cards — 실제 카드의 배색만 참고한 추상 그래픽입니다.
-   로고·마스코트 등 상표 요소는 포함하지 않습니다. */
+/* Japanese IC transit cards (Suica / PASMO).
+   실제 카드의 배색·웨이브 형태·워드마크 배치를 따라 그립니다.
+   마스코트 일러스트(스이카 펭귄, 파스모 로봇)는 별개 저작물이라 포함하지 않습니다. */
+function rrect(ctx,x,y,w,h,r){
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,w,h,r);return}
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
 function transitCard(ctx,w,h,R,c){
-  const g=ctx.createLinearGradient(0,0,w*.3,h);
-  g.addColorStop(0,c.light);g.addColorStop(.48,c.mid);g.addColorStop(1,c.deep);
+  /* 1 — base field */
+  const g=ctx.createLinearGradient(0,0,w*.34,h);
+  g.addColorStop(0,c.light);g.addColorStop(.46,c.mid);g.addColorStop(1,c.deep);
   ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
 
-  const gl=ctx.createRadialGradient(w*.24,h*.16,20,w*.24,h*.16,w*.66);
-  gl.addColorStop(0,"rgba(255,255,255,.34)");gl.addColorStop(1,"rgba(255,255,255,0)");
+  /* 2 — upper-left light */
+  const gl=ctx.createRadialGradient(w*.18,h*.12,10,w*.18,h*.12,w*.72);
+  gl.addColorStop(0,"rgba(255,255,255,.30)");gl.addColorStop(1,"rgba(255,255,255,0)");
   ctx.fillStyle=gl;ctx.fillRect(0,0,w,h);
 
-  ctx.save();ctx.globalAlpha=.06;ctx.fillStyle="#FFFFFF";
+  /* 3 — IC card print texture */
+  ctx.save();ctx.globalAlpha=.055;ctx.fillStyle="#FFFFFF";
   for(let y=0;y<h;y+=16){
     const off=(y/16)%2?8:0;
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
 
-  function band(t,b,fill){
-    ctx.beginPath();
-    ctx.moveTo(-24,h*t);
-    ctx.bezierCurveTo(w*.34,h*(t-.18),w*.66,h*(t+.22),w+24,h*(t-.10));
-    ctx.lineTo(w+24,h*(b-.10));
-    ctx.bezierCurveTo(w*.66,h*(b+.22),w*.34,h*(b-.18),-24,h*b);
-    ctx.closePath();ctx.fillStyle=fill;ctx.fill();
-  }
-  band(.62,.80,"rgba(255,255,255,.90)");
-  band(.80,.90,"rgba(255,255,255,.30)");
+  /* 4 — the signature ribbon sweeping up to the right */
+  ctx.beginPath();
+  ctx.moveTo(-30,h*.95);
+  ctx.bezierCurveTo(w*.30,h*.88,w*.52,h*.50,w+30,h*.28);
+  ctx.lineTo(w+30,h*.55);
+  ctx.bezierCurveTo(w*.55,h*.76,w*.32,h*1.10,-30,h*1.18);
+  ctx.closePath();
+  ctx.fillStyle="rgba(255,255,255,.94)";ctx.fill();
 
-  const sh=ctx.createLinearGradient(0,0,0,h*.55);
-  sh.addColorStop(0,"rgba(255,255,255,.16)");sh.addColorStop(1,"rgba(255,255,255,0)");
-  ctx.fillStyle=sh;ctx.fillRect(0,0,w,h*.55);
+  /* 5 — thin echo above it */
+  ctx.beginPath();
+  ctx.moveTo(-30,h*.80);
+  ctx.bezierCurveTo(w*.30,h*.73,w*.52,h*.36,w+30,h*.14);
+  ctx.lineTo(w+30,h*.21);
+  ctx.bezierCurveTo(w*.52,h*.43,w*.30,h*.80,-30,h*.87);
+  ctx.closePath();
+  ctx.fillStyle="rgba(255,255,255,.40)";ctx.fill();
+
+  /* 6 — wordmark, top-left */
+  ctx.save();
+  ctx.fillStyle="#FFFFFF";
+  ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  ctx.shadowColor="rgba(0,0,0,.22)";ctx.shadowBlur=h*.028;ctx.shadowOffsetY=h*.006;
+  ctx.font=c.markStyle+" "+Math.round(h*c.markSize)+'px "'+c.markFont+'", sans-serif';
+  if(c.markTrack){
+    let x=w*.062;
+    c.mark.split("").forEach(function(ch){
+      ctx.fillText(ch,x,h*.215);x+=ctx.measureText(ch).width+h*c.markTrack;
+    });
+  }else{
+    ctx.fillText(c.mark,w*.062,h*.215);
+  }
+  ctx.restore();
+
+  /* 7 — IC mark, bottom-right */
+  const bw=h*.20,bh=h*.115,bx=w-bw-w*.055,by=h-bh-h*.11;
+  ctx.save();
+  ctx.fillStyle="rgba(255,255,255,.94)";
+  rrect(ctx,bx,by,bw,bh,bh*.30);ctx.fill();
+  ctx.fillStyle=c.deep;
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.font='700 '+Math.round(bh*.58)+'px "Archivo", sans-serif';
+  ctx.fillText("IC",bx+bw*.34,by+bh/2);
+  ctx.strokeStyle=c.deep;ctx.lineWidth=bh*.07;ctx.lineCap="round";
+  for(let i=0;i<3;i++){
+    const r=bh*(.16+i*.11);
+    ctx.beginPath();
+    ctx.arc(bx+bw*.62,by+bh/2,r,-Math.PI/3,Math.PI/3);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  /* 8 — top sheen */
+  const sh=ctx.createLinearGradient(0,0,0,h*.5);
+  sh.addColorStop(0,"rgba(255,255,255,.14)");sh.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.fillStyle=sh;ctx.fillRect(0,0,w,h*.5);
 }
-const SUICA={light:"#A9E5C0",mid:"#2FAE60",deep:"#075E2E"};
-const PASMO={light:"#FBBBD8",mid:"#E9579D",deep:"#A80F63"};
+const SUICA={
+  light:"#8FDCAB",mid:"#12A44A",deep:"#04632A",
+  mark:"Suica",markFont:"Archivo",markStyle:"700",markSize:.145,markTrack:0
+};
+const PASMO={
+  light:"#F8A9CE",mid:"#E3348B",deep:"#94095A",
+  mark:"PASMO",markFont:"Archivo",markStyle:"800",markSize:.125,markTrack:.018
+};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
@@ -579,13 +637,19 @@ function drawText(){
 
 /* ---------- preset thumbnails ---------- */
 const tray=document.getElementById("presets");
+const repaintThumbs=[];
 PRESETS.forEach(function(p){
   const b=document.createElement("button");
   b.className="preset";b.type="button";b.dataset.id=p.id;
   b.setAttribute("aria-pressed",p.id===state.preset);
   const c=document.createElement("canvas");c.width=256;c.height=161;
-  const cc=c.getContext("2d");cc.save();cc.scale(256/W,161/H);
-  p.draw(cc,W,H,mulberry32(p.seed));cc.restore();
+  const cc=c.getContext("2d");
+  const paint=function(){
+    cc.setTransform(1,0,0,1,0,0);cc.clearRect(0,0,256,161);
+    cc.save();cc.scale(256/W,161/H);
+    p.draw(cc,W,H,mulberry32(p.seed));cc.restore();
+  };
+  paint();repaintThumbs.push(paint);
   const s=document.createElement("span");s.textContent=p.name;
   b.appendChild(c);b.appendChild(s);
   b.addEventListener("click",function(){
@@ -769,6 +833,10 @@ document.getElementById("export").addEventListener("click",function(){
 
 /* ---------- boot ---------- */
 render();
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(render);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){
+  presetCacheKey=null;                 /* 워드마크가 대체 서체로 캐시됐을 수 있음 */
+  repaintThumbs.forEach(function(f){f()});
+  render();
+});
 })();
 </script>
