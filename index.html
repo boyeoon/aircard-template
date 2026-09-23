@@ -404,21 +404,24 @@ function flatCard(ctx,w,h,R,c){
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
-  const m=c.art&&cardArt[c.art];
-  if(m&&m.complete&&m.naturalWidth){
-    if(c.artPos==="br"){
-      const mh=h*.62,mw=mh*m.naturalWidth/m.naturalHeight;
-      ctx.drawImage(m,w-mw-w*.06,h-mh-h*.07,mw,mh);
-    }else{
+  (c.art||[]).forEach(function(it){
+    const m=cardArt[it.key];
+    if(!m||!m.complete||!m.naturalWidth)return;
+    if(it.pos==="left"){
       const sc=Math.min(w*.62/m.naturalWidth,h*.74/m.naturalHeight);
-      const mw=m.naturalWidth*sc,mh=m.naturalHeight*sc;
-      ctx.drawImage(m,w*.06,(h-mh)/2,mw,mh);
+      ctx.drawImage(m,w*.06,(h-m.naturalHeight*sc)/2,m.naturalWidth*sc,m.naturalHeight*sc);
+      return;
     }
-  }
+    const mh=h*it.h,mw=mh*m.naturalWidth/m.naturalHeight;
+    ctx.drawImage(m,w-mw-w*.06,it.pos==="tr"?h*.07:h-mh-h*.07,mw,mh);
+  });
 }
 const cardArt={};
-const SUICA={base:"#DFDFDD",dot:"#FFFFFF",dotA:.055,art:"suica",artPos:"br"};
-const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:"pasmo"};
+const SUICA={base:"#DFDFDD",dot:"#FFFFFF",dotA:.055,art:[
+  {key:"suicalogo",pos:"tr",h:.26},
+  {key:"penguin",pos:"br",h:.31}
+]};
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[{key:"pasmo",pos:"left"}]};
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
@@ -775,7 +778,7 @@ document.getElementById("export").addEventListener("click",function(){
 })();
 
 /* ---------- card artwork ---------- */
-[["pasmo","pasmo.png"],["suica","suica-penguin.png"]].forEach(function(e){
+[["pasmo","pasmo.png"],["penguin","suica-penguin.png"],["suicalogo","suica-logo.png"]].forEach(function(e){
   const img=new Image();
   img.onload=function(){
     cardArt[e[0]]=img;presetCacheKey=null;
