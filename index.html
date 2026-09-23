@@ -103,6 +103,14 @@ h1{
   border-top:1px solid var(--line-soft);
 }
 .preset:hover{border-color:var(--ink-3)}
+.marks{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
+.mark{
+  border:1px solid var(--line);background:var(--panel-2);border-radius:7px;
+  padding:6px;cursor:pointer;display:grid;place-items:center;aspect-ratio:1.45;
+}
+.mark img{max-width:100%;max-height:100%;display:block}
+.mark:hover{border-color:var(--ink-3)}
+.mark[aria-pressed="true"]{border-color:var(--foil-bg);background:var(--foil-tint)}
 .preset-add{
   border:1px dashed var(--line);background:var(--panel-2);border-radius:8px;
   cursor:pointer;color:var(--ink-3);display:grid;place-items:center;min-height:62px;
@@ -330,6 +338,13 @@ input[type=color]{
         </div>
       </details>
 
+      <details class="mod">
+        <summary>마크</summary>
+        <div class="mod-body">
+          <div class="marks" id="marks"></div>
+        </div>
+      </details>
+
       <button class="btn btn-foil btn-wide" id="export">PNG 내보내기 · 1536×969</button>
     </aside>
   </div>
@@ -419,7 +434,8 @@ const state={
   bri:100, con:100, sat:100, blur:0,
   vig:18, grain:6, tint:"#0A1C2E", tinta:0,
   text:"CARDWALLET", tfont:"Archivo", tpos:"bl", tsize:58, track:10,
-  tcolor:"#F4F1EA", tshadow:true
+  tcolor:"#F4F1EA", tshadow:true,
+  marks:[]
 };
 
 const card=document.getElementById("card");
@@ -501,6 +517,7 @@ function render(){
     ctx.restore();
   }
   if(!(state.mode==="preset"&&cur&&cur.noText))drawText();
+  drawMarks();
 
   {
     ctx.save();
@@ -523,6 +540,31 @@ function syncCorner(){
   const r=RADIUS;
   hold.style.setProperty("--cr",
     r?(r/W*100).toFixed(3)+"% / "+(r/H*100).toFixed(3)+"%":"0px");
+}
+
+const MARKS=[
+  {id:"applepay",name:"Apple Pay"},{id:"contactless",name:"비접촉"},
+  {id:"id",name:"iD"},{id:"quicpay",name:"QUICPay"},
+  {id:"suica",name:"Suica"},{id:"ic",name:"IC"},
+  {id:"pasmo",name:"PASMO"},{id:"icoca",name:"ICOCA"},
+  {id:"nanaco",name:"nanaco"},{id:"waon",name:"WAON"}
+];
+const markImgs={};
+
+/* 고른 순서대로 카드 우하단에 한 줄 */
+function drawMarks(){
+  const ids=state.marks.filter(function(id){
+    const m=markImgs[id];return m&&m.complete&&m.naturalWidth;
+  });
+  if(!ids.length)return;
+  const mh=H*.105,gap=H*.030,padX=W*.045,padY=H*.075;
+  const ws=ids.map(function(id){
+    const m=markImgs[id];return mh*m.naturalWidth/m.naturalHeight;
+  });
+  const total=ws.reduce(function(a,b){return a+b},0)+gap*(ids.length-1);
+  let x=W-padX-total;
+  const y=H-padY-mh;
+  ids.forEach(function(id,i){ctx.drawImage(markImgs[id],x,y,ws[i],mh);x+=ws[i]+gap});
 }
 
 const POS=[["tl","tc","tr"],["ml","mc","mr"],["bl","bc","br"]];
@@ -705,6 +747,28 @@ document.getElementById("export").addEventListener("click",function(){
     btn.disabled=false;
   },"image/png");
 });
+
+/* ---------- mark picker ---------- */
+(function(){
+  const box=document.getElementById("marks");
+  MARKS.forEach(function(mk){
+    const b=document.createElement("button");
+    b.type="button";b.className="mark";b.setAttribute("aria-pressed","false");
+    b.title=mk.name;
+    const img=document.createElement("img");
+    img.src="marks/"+mk.id+".png";img.alt=mk.name;
+    img.addEventListener("load",function(){if(state.marks.indexOf(mk.id)>=0)render()});
+    markImgs[mk.id]=img;
+    b.appendChild(img);
+    b.addEventListener("click",function(){
+      const i=state.marks.indexOf(mk.id);
+      if(i>=0)state.marks.splice(i,1);else state.marks.push(mk.id);
+      b.setAttribute("aria-pressed",i<0);
+      render();
+    });
+    box.appendChild(b);
+  });
+})();
 
 /* ---------- PASMO wordmark ---------- */
 (function(){
