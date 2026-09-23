@@ -106,6 +106,12 @@ h1{
   border-top:1px solid var(--line-soft);
 }
 .preset:hover{border-color:var(--ink-3)}
+.preset-add{
+  border:1px dashed var(--line);background:var(--panel-2);border-radius:8px;
+  cursor:pointer;color:var(--ink-3);display:grid;place-items:center;min-height:62px;
+}
+.preset-add:hover{border-color:var(--foil-bg);color:var(--foil)}
+.preset-add svg{width:24px;height:24px;display:block}
 .preset[aria-pressed="true"]{border-color:var(--foil-bg);box-shadow:0 0 0 1px var(--foil-bg)}
 .preset[aria-pressed="true"] span{background:var(--foil-tint);color:var(--foil);font-weight:600}
 
@@ -249,22 +255,20 @@ input[type=color]{
           <span class="rowlab">프리셋 소재</span>
           <span class="val" id="preset-name">티타늄</span>
         </div>
-        <div class="presets" id="presets"></div>
+        <div class="presets" id="presets">
+          <button class="preset-add" type="button" id="pick" aria-label="사진 불러오기">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <input type="file" id="file" class="hidden-file" accept="image/*">
       </div>
     </section>
 
     <!-- ================= RAIL ================= -->
     <aside class="rail">
-      <details class="mod" open>
-        <summary>소재</summary>
-        <div class="mod-body">
-          <button class="btn btn-wide" id="pick">사진 불러오기</button>
-          <input type="file" id="file" class="hidden-file" accept="image/*">
-          <p class="note">드래그 앤 드롭도 됩니다. 사진은 1536×969 프레임에 <b>꽉 채우기(cover)</b>로 배치되고, 넘치는 부분은 잘립니다.</p>
-          <button class="btn btn-wide" id="srcswap" hidden>프리셋으로 전환</button>
-        </div>
-      </details>
-
       <details class="mod" open>
         <summary>배치</summary>
         <div class="mod-body">
@@ -681,9 +685,8 @@ PRESETS.forEach(function(p){
   b.appendChild(c);b.appendChild(s);
   b.addEventListener("click",function(){
     state.preset=p.id;state.mode="preset";
-    syncSrcSwap();
     document.getElementById("preset-name").textContent=p.name;
-    [].forEach.call(tray.children,function(n){n.setAttribute("aria-pressed",n===b)});
+    [].forEach.call(tray.querySelectorAll(".preset"),function(n){n.setAttribute("aria-pressed",n===b)});
     render();
   });
   tray.appendChild(b);
@@ -760,27 +763,13 @@ document.getElementById("resetadj").addEventListener("click",function(){
 const fileInput=document.getElementById("file");
 document.getElementById("pick").addEventListener("click",function(){fileInput.click()});
 fileInput.addEventListener("change",function(){if(fileInput.files[0])loadFile(fileInput.files[0])});
-const srcSwap=document.getElementById("srcswap");
-function syncSrcSwap(){
-  srcSwap.hidden=!state.photo;
-  srcSwap.textContent=state.mode==="photo"?"프리셋으로 전환":"사진으로 전환";
-}
-srcSwap.addEventListener("click",function(){
-  if(!state.photo)return;
-  state.mode=state.mode==="photo"?"preset":"photo";
-  [].forEach.call(tray.children,function(n){
-    n.setAttribute("aria-pressed",state.mode==="preset"&&n.dataset.id===state.preset);
-  });
-  syncSrcSwap();render();
-});
 function loadFile(file){
   if(!file.type.startsWith("image/")){say("이미지 파일이 아닙니다.","err");return}
   const url=URL.createObjectURL(file),img=new Image();
   img.onload=function(){
     state.photo=img;state.mode="photo";
     state.ox=0;state.oy=0;
-    syncSrcSwap();
-    [].forEach.call(tray.children,function(n){n.setAttribute("aria-pressed",false)});
+    [].forEach.call(tray.querySelectorAll(".preset"),function(n){n.setAttribute("aria-pressed",false)});
     render();say("사진을 프레임에 맞췄습니다.","ok");
   };
   img.onerror=function(){say("이 이미지를 열 수 없습니다.","err");URL.revokeObjectURL(url)};
