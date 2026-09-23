@@ -72,21 +72,20 @@ h1{
   padding:clamp(16px,3.4vw,40px);
   background-image:repeating-linear-gradient(90deg,transparent 0 23px,rgba(128,132,142,.07) 23px 24px);
 }
-.card-hold{position:relative;max-width:100%;margin:0 auto}
+.card-hold{position:relative;max-width:100%;margin:0 auto;--cr:5.5%/8.72%}
 .card-hold canvas{
   display:block;width:100%;height:auto;max-width:100%;
-  border-radius:5.5%/8.72%;
+  border-radius:var(--cr);
   box-shadow:var(--shadow-card);
   touch-action:none;cursor:grab;
   background:var(--panel-2);
 }
-.card-hold.flat canvas{border-radius:2px}
 .card-hold.dragging canvas{cursor:grabbing}
 .overlay{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
 .overlay svg{width:100%;height:100%;display:block}
 .drop-hint{
   position:absolute;inset:0;display:none;place-items:center;
-  border-radius:5.5%/8.72%;background:rgba(199,154,62,.16);
+  border-radius:var(--cr);background:rgba(199,154,62,.16);
   border:2px dashed var(--foil-bg);
   font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--foil);
 }
@@ -369,9 +368,13 @@ input[type=color]{
       <details class="mod" open>
         <summary>출력</summary>
         <div class="mod-body">
-          <label class="toggle"><input type="checkbox" id="g-corner" checked> 둥근 모서리 미리보기</label>
+          <label class="toggle"><input type="checkbox" id="g-corner" checked> 둥근 모서리로 깎아 내보내기</label>
+          <div class="field">
+            <div class="valrow"><label for="radius">모서리 반경</label><span class="val" id="v-radius">85 px</span></div>
+            <input type="range" id="radius" min="0" max="180" value="85">
+          </div>
           <label class="toggle"><input type="checkbox" id="g-safe"> 안전 영역 가이드</label>
-          <p class="note">내보내는 PNG는 항상 모서리가 없는 <b>1536×969 사각형</b>입니다. 둥근 모서리는 Wallet이 직접 마스킹합니다.</p>
+          <p class="note">모서리 바깥은 <b>투명</b>하게 저장됩니다. Wallet이 카드를 그릴 때 쓰는 마스크와 맞추려면 <b>85 px</b> 근처가 맞습니다.</p>
           <div class="field">
             <label for="fname">파일 이름</label>
             <input type="text" id="fname" value="aircard-skin" spellcheck="false">
@@ -543,6 +546,7 @@ const state={
   photo:null,
   zoom:1, rot:0, ox:0, oy:0,
   bri:100, con:100, sat:100, blur:0,
+  round:true, radius:85,
   vig:18, grain:6, tint:"#0A1C2E", tinta:0,
   text:"AIRCARD", tfont:"Archivo", tpos:"bl", tsize:58, track:10,
   tcolor:"#F4F1EA", tshadow:true
@@ -621,6 +625,28 @@ function render(){
     ctx.restore();
   }
   drawText();
+
+  if(state.round&&state.radius>0){
+    ctx.save();
+    ctx.globalCompositeOperation="destination-in";
+    cornerPath(ctx,0,0,W,H,Math.min(state.radius,Math.min(W,H)/2));
+    ctx.fillStyle="#000";ctx.fill();
+    ctx.restore();
+  }
+}
+
+function cornerPath(ctx,x,y,w,h,r){
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,w,h,r);return}
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+
+/* the element radius follows the pixels so the drop shadow matches */
+function syncCorner(){
+  const r=state.round?Math.min(state.radius,Math.min(W,H)/2):0;
+  hold.style.setProperty("--cr",
+    r?(r/W*100).toFixed(3)+"% / "+(r/H*100).toFixed(3)+"%":"0px");
 }
 
 const POS=[["tl","tc","tr"],["ml","mc","mr"],["bl","bc","br"]];
@@ -719,7 +745,19 @@ document.getElementById("tfont").addEventListener("change",function(e){state.tfo
 document.getElementById("tshadow").addEventListener("change",function(e){state.tshadow=e.target.checked;render()});
 
 const hold=document.getElementById("hold"),overlay=document.getElementById("overlay");
-document.getElementById("g-corner").addEventListener("change",function(e){hold.classList.toggle("flat",!e.target.checked)});
+document.getElementById("g-corner").addEventListener("change",function(e){
+  state.round=e.target.checked;
+  document.getElementById("radius").disabled=!state.round;
+  syncCorner();render();
+});
+(function(){
+  const el=document.getElementById("radius"),out=document.getElementById("v-radius");
+  el.addEventListener("input",function(){
+    state.radius=parseFloat(el.value);
+    out.textContent=state.radius+" px";
+    syncCorner();render();
+  });
+})();
 document.getElementById("g-safe").addEventListener("change",function(e){overlay.hidden=!e.target.checked});
 
 document.getElementById("center").addEventListener("click",function(){state.ox=0;state.oy=0;render()});
@@ -839,6 +877,7 @@ document.getElementById("export").addEventListener("click",function(){
 });
 
 /* ---------- boot ---------- */
+syncCorner();
 render();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){
   presetCacheKey=null;                 /* 워드마크가 대체 서체로 캐시됐을 수 있음 */
