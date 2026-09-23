@@ -806,7 +806,7 @@ function say(msg,tone){
 function safeName(){
   const p=byId[state.preset];
   const n=((p&&p.name)||state.preset).replace(/[\\/:*?"<>|]/g,"-").trim();
-  return "aircard-tamplate-"+n+".png";
+  return "aircard-template-"+n+".png";
 }
 document.getElementById("export").addEventListener("click",function(){
   const btn=this;btn.disabled=true;say("PNG 인코딩 중…");
