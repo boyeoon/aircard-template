@@ -368,10 +368,6 @@ input[type=color]{
         <summary>출력</summary>
         <div class="mod-body">
           <label class="toggle"><input type="checkbox" id="g-safe"> 안전 영역 가이드</label>
-          <div class="field">
-            <label for="fname">파일 이름</label>
-            <input type="text" id="fname" value="aircard-skin" spellcheck="false">
-          </div>
           <button class="btn btn-foil btn-wide" id="export">PNG 내보내기 · 1536×969</button>
           <p class="status" id="status" role="status"></p>
         </div>
@@ -808,9 +804,9 @@ function say(msg,tone){
   statusTimer=setTimeout(function(){statusEl.textContent="";statusEl.dataset.tone=""},6000);
 }
 function safeName(){
-  const raw=(document.getElementById("fname").value||"aircard-skin").trim();
-  const clean=raw.replace(/\.png$/i,"").replace(/[\\/:*?"<>|]/g,"-").slice(0,80)||"aircard-skin";
-  return clean+"-1536x969.png";
+  const p=byId[state.preset];
+  const n=((p&&p.name)||state.preset).replace(/[\\/:*?"<>|]/g,"-").trim();
+  return "aircard-tamplate-"+n+".png";
 }
 document.getElementById("export").addEventListener("click",function(){
   const btn=this;btn.disabled=true;say("PNG 인코딩 중…");
