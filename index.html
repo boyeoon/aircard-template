@@ -237,6 +237,7 @@ input[type=color]{
           </button>
         </div>
         <input type="file" id="file" class="hidden-file" accept="image/*">
+        <input type="file" id="photofile" class="hidden-file" accept="image/*">
       </div>
     </section>
 
@@ -520,7 +521,7 @@ function render(){
     ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
-  if(state.mode==="preset")paintArt(ctx,W,H,state.art);
+  paintArt(ctx,W,H,state.art);
   if(!(state.mode==="preset"&&cur&&cur.noText))drawText();
   drawMarks();
 
@@ -616,6 +617,51 @@ PRESETS.forEach(function(p){
   });
   tray.appendChild(b);
 });
+
+/* 트레이는 "카드 바탕"을 고르는 곳이므로 사진도 여기에 둔다 */
+const photoTile=document.createElement("button");
+const photoInput=document.getElementById("photofile");
+(function(){
+  photoTile.className="preset";photoTile.type="button";photoTile.dataset.id="__photo";
+  photoTile.setAttribute("aria-pressed","false");
+  const c=document.createElement("canvas");c.width=256;c.height=161;
+  const cc=c.getContext("2d");
+  const paint=function(){
+    cc.setTransform(1,0,0,1,0,0);
+    if(state.mode==="photo"&&state.photo){
+      const m=state.photo,sc=Math.max(256/m.naturalWidth,161/m.naturalHeight);
+      const dw=m.naturalWidth*sc,dh=m.naturalHeight*sc;
+      cc.drawImage(m,(256-dw)/2,(161-dh)/2,dw,dh);
+      return;
+    }
+    cc.fillStyle="#E7E8EB";cc.fillRect(0,0,256,161);
+    cc.fillStyle="#AFB3BB";
+    cc.beginPath();cc.arc(80,52,16,0,6.2832);cc.fill();
+    cc.beginPath();cc.moveTo(44,124);cc.lineTo(104,68);cc.lineTo(164,124);cc.closePath();cc.fill();
+    cc.beginPath();cc.moveTo(132,124);cc.lineTo(176,90);cc.lineTo(220,124);cc.closePath();cc.fill();
+  };
+  paint();repaintThumbs.push(paint);
+  const s2=document.createElement("span");s2.textContent="사진";
+  photoTile.appendChild(c);photoTile.appendChild(s2);
+  photoTile.addEventListener("click",function(){photoInput.click()});
+  photoInput.addEventListener("change",function(){
+    const f=photoInput.files[0];photoInput.value="";
+    if(!f||!f.type.startsWith("image/"))return;
+    const url=URL.createObjectURL(f),img=new Image();
+    img.onload=function(){
+      state.photo=img;state.mode="photo";
+      state.ox=0;state.oy=0;state.zoom=1;
+      state.art=[];sel=-1;guides=[];undo.length=0;
+      [].forEach.call(tray.querySelectorAll(".preset"),function(n){
+        n.setAttribute("aria-pressed",n===photoTile);
+      });
+      paint();render();drawUI();
+    };
+    img.onerror=function(){URL.revokeObjectURL(url)};
+    img.src=url;
+  });
+  tray.appendChild(photoTile);
+})();
 
 /* ---------- position grid ---------- */
 const posGrid=document.getElementById("pos");
@@ -770,7 +816,6 @@ function applySnap(i,b){
 function drawUI(){
   uctx.setTransform(1,0,0,1,0,0);
   uctx.clearRect(0,0,W,H);
-  if(state.mode!=="preset")return;
   if(guides.length){
     uctx.save();
     uctx.strokeStyle="#E0447A";uctx.lineWidth=3;
@@ -826,7 +871,7 @@ const CURSORS=["nwse-resize","nesw-resize","nesw-resize","nwse-resize"];
 
 ui.addEventListener("pointerdown",function(e){
   const p=toCard(e);
-  if(state.mode==="preset"){
+  {
     const hi=hitHandle(p);
     if(hi===ROT){
       pushUndo();
@@ -863,13 +908,12 @@ ui.addEventListener("pointerdown",function(e){
 });
 ui.addEventListener("pointermove",function(e){
   if(!drag){
-    let c="default";
-    if(state.mode==="photo")c="grab";
-    else if(state.mode==="preset"){
-      const p=toCard(e),hi=hitHandle(p);
-      c=hi===ROT?"grab":(hi>=0?CURSORS[hi]:(hitArt(p)>=0?"move":"default"));
-    }
-    ui.style.cursor=c;return;
+    const p=toCard(e),hi=hitHandle(p);
+    ui.style.cursor=hi===ROT?"grab"
+      :hi>=0?CURSORS[hi]
+      :hitArt(p)>=0?"move"
+      :state.mode==="photo"?"grab":"default";
+    return;
   }
   if(drag.type==="pan"){
     const k=W/ui.getBoundingClientRect().width;
@@ -931,7 +975,8 @@ ui.addEventListener("wheel",function(e){
 /* ---------- export ---------- */
 function safeName(){
   const p=byId[state.preset];
-  const n=((p&&p.name)||state.preset).replace(/[\\/:*?"<>|]/g,"-").trim();
+  const raw=state.mode==="photo"?"photo":((p&&p.name)||state.preset);
+  const n=raw.replace(/[\\/:*?"<>|]/g,"-").trim();
   return "cardwallet-template-"+n+".png";
 }
 document.getElementById("export").addEventListener("click",function(){
