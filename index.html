@@ -684,7 +684,33 @@ bed.addEventListener("drop",function(e){const f=e.dataTransfer.files[0];if(f)loa
 const ui=document.getElementById("ui");
 const uctx=ui.getContext("2d");
 const HANDLE=26;                       /* 핸들 한 변 (카드 좌표계) */
-let sel=-1,drag=null;
+const SNAP=16;                         /* 흡착 거리 */
+let sel=-1,drag=null,guides=[];
+
+/* 카드 가장자리·중심선, 그리고 다른 아트워크의 모서리·중심에 달라붙는다 */
+function applySnap(i,b){
+  const xt=[0,W/2,W],yt=[0,H/2,H];
+  state.art.forEach(function(it,j){
+    if(j===i)return;
+    const o=artBox(it);if(!o)return;
+    xt.push(o.x,o.x+o.w/2,o.x+o.w);
+    yt.push(o.y,o.y+o.h/2,o.y+o.h);
+  });
+  guides=[];
+  [["x",[b.x,b.x+b.w/2,b.x+b.w],xt],["y",[b.y,b.y+b.h/2,b.y+b.h],yt]].forEach(function(a){
+    let best=SNAP+1,shift=0,at=null;
+    a[1].forEach(function(v){
+      a[2].forEach(function(t){
+        const d=Math.abs(v-t);
+        if(d<best){best=d;shift=t-v;at=t}
+      });
+    });
+    if(at===null||best>SNAP)return;
+    if(a[0]==="x")b.x+=shift;else b.y+=shift;
+    guides.push({axis:a[0],at:at});
+  });
+  return b;
+}
 
 function loadPresetArt(){
   const p=byId[state.preset],src=(p&&p.art)||[];
@@ -703,7 +729,19 @@ function corners(b){
 function drawUI(){
   uctx.setTransform(1,0,0,1,0,0);
   uctx.clearRect(0,0,W,H);
-  if(state.mode!=="preset"||sel<0||!state.art[sel])return;
+  if(state.mode!=="preset")return;
+  if(guides.length){
+    uctx.save();
+    uctx.strokeStyle="#E0447A";uctx.lineWidth=3;
+    guides.forEach(function(g){
+      uctx.beginPath();
+      if(g.axis==="x"){uctx.moveTo(g.at,0);uctx.lineTo(g.at,H)}
+      else{uctx.moveTo(0,g.at);uctx.lineTo(W,g.at)}
+      uctx.stroke();
+    });
+    uctx.restore();
+  }
+  if(sel<0||!state.art[sel])return;
   const b=artBox(state.art[sel]);if(!b)return;
   uctx.save();
   uctx.strokeStyle="#C79A3E";uctx.lineWidth=4;uctx.setLineDash([18,12]);
@@ -752,7 +790,8 @@ ui.addEventListener("pointerdown",function(e){
     const ai=hitArt(p);
     if(ai>=0){
       sel=ai;drawUI();
-      drag={type:"move",i:ai,px:p.x,py:p.y};
+      const b=artBox(state.art[ai]);
+      drag={type:"move",i:ai,px:p.x,py:p.y,rx:b.x,ry:b.y,w:b.w,h:b.h};
       ui.setPointerCapture(e.pointerId);return;
     }
     if(sel>=0){sel=-1;drawUI();}
@@ -780,8 +819,11 @@ ui.addEventListener("pointermove",function(e){
   }
   const p=toCard(e),it=state.art[drag.i];
   if(drag.type==="move"){
-    it.x+=(p.x-drag.px)/W;it.y+=(p.y-drag.py)/H;
+    /* 흡착이 다음 프레임의 기준이 되지 않도록 원래 위치를 따로 누적한다 */
+    drag.rx+=p.x-drag.px;drag.ry+=p.y-drag.py;
     drag.px=p.x;drag.py=p.y;
+    const b=applySnap(drag.i,{x:drag.rx,y:drag.ry,w:drag.w,h:drag.h});
+    it.x=b.x/W;it.y=b.y/H;
   }else{
     const nh=Math.max(24,Math.max(Math.abs(p.y-drag.ay),Math.abs(p.x-drag.ax)/drag.ar));
     const nw=nh*drag.ar;
@@ -792,7 +834,9 @@ ui.addEventListener("pointermove",function(e){
   render();drawUI();
 });
 ["pointerup","pointercancel"].forEach(function(t){
-  ui.addEventListener(t,function(){drag=null;hold.classList.remove("dragging")});
+  ui.addEventListener(t,function(){
+    drag=null;guides=[];hold.classList.remove("dragging");drawUI();
+  });
 });
 ui.addEventListener("wheel",function(e){
   if(state.mode!=="photo")return;
