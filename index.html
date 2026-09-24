@@ -649,19 +649,27 @@ const photoTile=makeTile("사진",function(cc){
 photoTile.classList.add("is-photo");
 tray.appendChild(photoTile);
 
+/* blob: URL 은 file:// 에서 캔버스를 오염시켜 내보내기가 막힌다. data: URL 로 읽는다 */
+function readImage(file,done){
+  const fr=new FileReader();
+  fr.onload=function(){
+    const img=new Image();
+    img.onload=function(){done(img)};
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
 photoInput.addEventListener("change",function(){
   const f=photoInput.files[0];photoInput.value="";
   if(!f||!f.type.startsWith("image/"))return;
-  const url=URL.createObjectURL(f),img=new Image();
-  img.onload=function(){
+  readImage(f,function(img){
     state.photo=img;state.mode="photo";
     state.ox=0;state.oy=0;state.zoom=1;
     state.art=[];sel=-1;guides=[];undo.length=0;
     markTile(photoTile);photoTile.repaint();
     render();drawUI();
-  };
-  img.onerror=function(){URL.revokeObjectURL(url)};
-  img.src=url;
+  });
 });
 
 PRESETS.forEach(function(p){
@@ -738,8 +746,7 @@ fileInput.addEventListener("change",function(){
 let upSeq=0;
 function addOverlay(file){
   if(!file.type.startsWith("image/"))return;
-  const url=URL.createObjectURL(file),img=new Image();
-  img.onload=function(){
+  readImage(file,function(img){
     const key="up"+(++upSeq);
     cardArt[key]=img;
     const h=.40,wFrac=h*H*(img.naturalWidth/img.naturalHeight)/W;
@@ -747,9 +754,7 @@ function addOverlay(file){
     state.art.push({key:key,x:(1-wFrac)/2,y:(1-h)/2,h:h,r:0});
     sel=state.art.length-1;
     render();drawUI();
-  };
-  img.onerror=function(){URL.revokeObjectURL(url)};
-  img.src=url;
+  });
 }
 const bed=document.getElementById("bed");
 ["dragenter","dragover"].forEach(function(t){bed.addEventListener(t,function(e){e.preventDefault();bed.classList.add("over")})});
@@ -995,20 +1000,29 @@ function safeName(){
 }
 document.getElementById("export").addEventListener("click",function(){
   const btn=this;btn.disabled=true;
-  card.toBlob(async function(blob){
-    if(!blob){btn.disabled=false;return}
-    const name=safeName();
-    let dl=null;
-    try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(err){dl=null}
-    if(dl){
-      try{await dl.save({filename:name,data:blob});}catch(err){}
-    }else{
-      const url=URL.createObjectURL(blob),a=document.createElement("a");
-      a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
-      setTimeout(function(){URL.revokeObjectURL(url)},4000);
-    }
+  /* 캔버스가 오염되면 toBlob 이 바로 던진다. file:// 로 열면 번들 PNG 가 그렇게 만든다 */
+  try{
+    card.toBlob(async function(blob){
+      if(!blob){btn.disabled=false;return}
+      const name=safeName();
+      let dl=null;
+      try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(err){dl=null}
+      if(dl){
+        try{await dl.save({filename:name,data:blob});}catch(err){}
+      }else{
+        const url=URL.createObjectURL(blob),a=document.createElement("a");
+        a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+        setTimeout(function(){URL.revokeObjectURL(url)},4000);
+      }
+      btn.disabled=false;
+    },"image/png");
+  }catch(err){
     btn.disabled=false;
-  },"image/png");
+    alert("이미지를 내보낼 수 없어요.\n\n"+
+          "index.html 을 파일로 바로 열면 브라우저가 같은 폴더의 PNG 를 외부 출처로 보고 "+
+          "캔버스 저장을 막습니다. 폴더에서 아래를 실행한 뒤 http://localhost:8000 으로 여세요.\n\n"+
+          "  python3 -m http.server 8000");
+  }
 });
 
 /* ---------- mark picker ---------- */
