@@ -115,6 +115,8 @@ h1{
   border-top:1px solid var(--line-soft);
 }
 .preset:hover{border-color:var(--ink-3)}
+.preset.is-photo{border:2px dashed var(--line);background:var(--panel-2)}
+.preset.is-photo:hover{border-color:var(--foil-bg)}
 .marks{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
 .mark{
   border:1px solid var(--line);background:var(--panel-2);border-radius:7px;
@@ -644,6 +646,7 @@ const photoTile=makeTile("사진",function(cc){
   cc.beginPath();cc.moveTo(44,124);cc.lineTo(104,68);cc.lineTo(164,124);cc.closePath();cc.fill();
   cc.beginPath();cc.moveTo(132,124);cc.lineTo(176,90);cc.lineTo(220,124);cc.closePath();cc.fill();
 },function(){photoInput.click()});
+photoTile.classList.add("is-photo");
 tray.appendChild(photoTile);
 
 photoInput.addEventListener("change",function(){
