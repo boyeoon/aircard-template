@@ -669,15 +669,24 @@ document.getElementById("resetadj").addEventListener("click",function(){
 /* ---------- photo input ---------- */
 const fileInput=document.getElementById("file");
 document.getElementById("pick").addEventListener("click",function(){fileInput.click()});
-fileInput.addEventListener("change",function(){if(fileInput.files[0])loadFile(fileInput.files[0])});
-function loadFile(file){
+fileInput.addEventListener("change",function(){
+  if(fileInput.files[0])addOverlay(fileInput.files[0]);
+  fileInput.value="";                 /* 같은 파일을 다시 골라도 열리도록 */
+});
+
+/* 고른 템플릿 위에 이미지를 한 장 더 얹는다. 얹은 뒤에는 카드 위에서 바로 조작한다 */
+let upSeq=0;
+function addOverlay(file){
   if(!file.type.startsWith("image/"))return;
   const url=URL.createObjectURL(file),img=new Image();
   img.onload=function(){
-    state.photo=img;state.mode="photo";
-    state.ox=0;state.oy=0;
-    [].forEach.call(tray.querySelectorAll(".preset"),function(n){n.setAttribute("aria-pressed",false)});
-    render();
+    const key="up"+(++upSeq);
+    cardArt[key]=img;
+    const h=.40,wFrac=h*H*(img.naturalWidth/img.naturalHeight)/W;
+    pushUndo();
+    state.art.push({key:key,x:(1-wFrac)/2,y:(1-h)/2,h:h,r:0});
+    sel=state.art.length-1;
+    render();drawUI();
   };
   img.onerror=function(){URL.revokeObjectURL(url)};
   img.src=url;
@@ -685,7 +694,7 @@ function loadFile(file){
 const bed=document.getElementById("bed");
 ["dragenter","dragover"].forEach(function(t){bed.addEventListener(t,function(e){e.preventDefault();bed.classList.add("over")})});
 ["dragleave","drop"].forEach(function(t){bed.addEventListener(t,function(e){e.preventDefault();if(t==="drop"||e.target===bed)bed.classList.remove("over")})});
-bed.addEventListener("drop",function(e){const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+bed.addEventListener("drop",function(e){const f=e.dataTransfer.files[0];if(f)addOverlay(f)});
 
 /* ---------- 카드 위에서 직접 조작 ---------- */
 const ui=document.getElementById("ui");
