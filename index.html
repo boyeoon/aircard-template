@@ -73,14 +73,17 @@ h1{
   background-image:repeating-linear-gradient(90deg,transparent 0 23px,rgba(128,132,142,.07) 23px 24px);
 }
 .card-hold{position:relative;max-width:100%;margin:0 auto;--cr:5.5%/8.72%}
-.card-hold canvas{
+.card-hold #card{
   display:block;width:100%;height:auto;max-width:100%;
   border-radius:var(--cr);
   box-shadow:var(--shadow-card);
-  touch-action:none;cursor:grab;
   background:var(--panel-2);
 }
-.card-hold.dragging canvas{cursor:grabbing}
+.card-hold #ui{
+  position:absolute;inset:0;width:100%;height:100%;
+  border-radius:var(--cr);touch-action:none;
+}
+.card-hold.dragging #ui{cursor:grabbing!important}
 .drop-hint{
   position:absolute;inset:0;display:none;place-items:center;
   border-radius:var(--cr);background:rgba(199,154,62,.16);
@@ -180,7 +183,6 @@ input[type=color]{
 .btn-foil:hover{filter:brightness(1.06);border-color:var(--foil-bg)}
 .btn-wide{width:100%}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
 
 .toggle{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:var(--ink-2)}
@@ -220,6 +222,7 @@ input[type=color]{
       <div class="bed" id="bed">
         <div class="card-hold" id="hold">
           <canvas id="card" width="1536" height="969" aria-label="카드 스킨 미리보기"></canvas>
+          <canvas id="ui" width="1536" height="969" aria-hidden="true"></canvas>
           <div class="drop-hint">이미지를 놓으세요</div>
         </div>
       </div>
@@ -239,24 +242,6 @@ input[type=color]{
 
     <!-- ================= RAIL ================= -->
     <aside class="rail">
-      <details class="mod" open>
-        <summary>배치</summary>
-        <div class="mod-body">
-          <div class="field">
-            <div class="valrow"><label for="zoom">확대</label><span class="val" id="v-zoom">100%</span></div>
-            <input type="range" id="zoom" min="100" max="400" value="100" step="1">
-          </div>
-          <div class="field">
-            <div class="valrow"><label for="rot">회전</label><span class="val" id="v-rot">0°</span></div>
-            <input type="range" id="rot" min="-180" max="180" value="0" step="1">
-          </div>
-          <div class="btn-row">
-            <button class="btn" id="center">가운데로</button>
-            <button class="btn" id="resetview">배치 초기화</button>
-          </div>
-        </div>
-      </details>
-
       <details class="mod">
         <summary>보정</summary>
         <div class="mod-body">
@@ -396,7 +381,7 @@ function midnight(ctx,w,h,R){
    실제 카드의 배색·웨이브 형태·워드마크 배치를 따라 그립니다.
    마스코트 일러스트(스이카 펭귄, 파스모 로봇)는 별개 저작물이라 포함하지 않습니다. */
 /* 단색 바탕 + 도트 텍스처. 선택적으로 아트워크 한 장 */
-function flatCard(ctx,w,h,R,c){
+function flatCard(ctx,w,h,R,c,art){
   ctx.fillStyle=c.base;ctx.fillRect(0,0,w,h);
   ctx.save();ctx.globalAlpha=c.dotA;ctx.fillStyle=c.dot;
   for(let y=0;y<h;y+=16){
@@ -404,8 +389,12 @@ function flatCard(ctx,w,h,R,c){
     for(let x=off;x<w;x+=16)ctx.fillRect(x,y,2.4,2.4);
   }
   ctx.restore();
-  /* x·y·h 는 카드 기준 비율. 폭은 원본 비율로 따라간다 */
-  (c.art||[]).forEach(function(it){
+  paintArt(ctx,w,h,art);      /* 썸네일용. 메인 캔버스는 state.art 를 따로 그린다 */
+}
+
+/* x·y·h 는 카드 기준 비율. 폭은 원본 비율로 따라간다 */
+function paintArt(ctx,w,h,items){
+  (items||[]).forEach(function(it){
     const m=cardArt[it.key];
     if(!m||!m.complete||!m.naturalWidth)return;
     const ah=h*it.h,aw=ah*m.naturalWidth/m.naturalHeight;
@@ -413,24 +402,24 @@ function flatCard(ctx,w,h,R,c){
   });
 }
 const cardArt={};
+const SUICA={base:"#DDDEDB",dot:"#FFFFFF",dotA:.055};
+const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05};
 /* 실제 Apple Wallet Suica 카드에서 실측한 비율 */
-const SUICA={base:"#DDDEDB",dot:"#FFFFFF",dotA:.055,art:[
+const SUICA_ART=[
   {key:"suicafield",x:.0297,y:.0545,h:.8933},
   {key:"suicalogo", x:.8032,y:.0558,h:.1515},
   {key:"penguin",   x:.7590,y:.5273,h:.4158}
-]};
+];
 /* PASMO_Card.svg 에서 실측한 비율 */
-const PASMO={base:"#DCDCDA",dot:"#6E6E6A",dotA:.05,art:[
-  {key:"pasmo",x:.1013,y:.1274,h:.7509}
-]};
+const PASMO_ART=[{key:"pasmo",x:.1013,y:.1274,h:.7509}];
 
 const PRESETS=[
   {id:"titanium",name:"티타늄",draw:titanium,seed:7},
   {id:"midnight",name:"미드나이트 포일",draw:midnight,seed:19},
-  {id:"suica",name:"Suica",seed:13,noText:true,noFx:true,
-    draw:function(ctx,w,h,R){flatCard(ctx,w,h,R,SUICA)}},
-  {id:"pasmo",name:"PASMO",seed:17,noText:true,noFx:true,
-    draw:function(ctx,w,h,R){flatCard(ctx,w,h,R,PASMO)}}
+  {id:"suica",name:"Suica",seed:13,noText:true,noFx:true,art:SUICA_ART,
+    draw:function(ctx,w,h,R,a){flatCard(ctx,w,h,R,SUICA,a&&SUICA_ART)}},
+  {id:"pasmo",name:"PASMO",seed:17,noText:true,noFx:true,art:PASMO_ART,
+    draw:function(ctx,w,h,R,a){flatCard(ctx,w,h,R,PASMO,a&&PASMO_ART)}}
 ];
 const byId={};PRESETS.forEach(function(p){byId[p.id]=p});
 
@@ -443,7 +432,7 @@ const state={
   vig:18, grain:6, tint:"#0A1C2E", tinta:0,
   text:"CARDWALLET", tfont:"Archivo", tpos:"bl", tsize:58, track:10,
   tcolor:"#F4F1EA", tshadow:true,
-  marks:[]
+  marks:[], art:[]
 };
 
 const card=document.getElementById("card");
@@ -524,6 +513,7 @@ function render(){
     ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
+  if(state.mode==="preset")paintArt(ctx,W,H,state.art);
   if(!(state.mode==="preset"&&cur&&cur.noText))drawText();
   drawMarks();
 
@@ -606,15 +596,16 @@ PRESETS.forEach(function(p){
   const paint=function(){
     cc.setTransform(1,0,0,1,0,0);cc.clearRect(0,0,256,161);
     cc.save();cc.scale(256/W,161/H);
-    p.draw(cc,W,H,mulberry32(p.seed));cc.restore();
+    p.draw(cc,W,H,mulberry32(p.seed),true);cc.restore();
   };
   paint();repaintThumbs.push(paint);
   const s=document.createElement("span");s.textContent=p.name;
   b.appendChild(c);b.appendChild(s);
   b.addEventListener("click",function(){
     state.preset=p.id;state.mode="preset";
+    loadPresetArt();
     [].forEach.call(tray.querySelectorAll(".preset"),function(n){n.setAttribute("aria-pressed",n===b)});
-    render();
+    render();drawUI();
   });
   tray.appendChild(b);
 });
@@ -645,22 +636,12 @@ function bindRange(id,key,fmt,after){
   if(out)out.textContent=fmt(state[key]);
 }
 const pct=function(v){return v+"%"},px=function(v){return v+" px"};
-(function(){
-  const el=document.getElementById("zoom"),out=document.getElementById("v-zoom");
-  el.addEventListener("input",function(){
-    state.zoom=parseFloat(el.value)/100;
-    out.textContent=Math.round(state.zoom*100)+"%";
-    render();
-  });
-})();
-bindRange("rot","rot",function(v){return v+"°"});
 bindRange("bri","bri",pct);bindRange("con","con",pct);
 bindRange("sat","sat",pct);bindRange("blur","blur",px);
 bindRange("vig","vig",pct);bindRange("grain","grain",pct);
 bindRange("tinta","tinta",pct);
 bindRange("tsize","tsize",px);
 bindRange("track","track",function(v){return String(v)});
-document.getElementById("v-zoom").textContent="100%";
 
 document.getElementById("tint").addEventListener("input",function(e){state.tint=e.target.value;render()});
 document.getElementById("tcolor").addEventListener("input",function(e){state.tcolor=e.target.value;render()});
@@ -670,13 +651,6 @@ document.getElementById("tshadow").addEventListener("change",function(e){state.t
 
 const hold=document.getElementById("hold");
 
-document.getElementById("center").addEventListener("click",function(){state.ox=0;state.oy=0;render()});
-document.getElementById("resetview").addEventListener("click",function(){
-  state.ox=0;state.oy=0;state.zoom=1;state.rot=0;
-  document.getElementById("zoom").value=100;document.getElementById("v-zoom").textContent="100%";
-  document.getElementById("rot").value=0;document.getElementById("v-rot").textContent="0°";
-  render();
-});
 document.getElementById("resetadj").addEventListener("click",function(){
   [["bri",100,pct],["con",100,pct],["sat",100,pct],["blur",0,px]].forEach(function(r){
     state[r[0]]=r[1];document.getElementById(r[0]).value=r[1];
@@ -706,29 +680,124 @@ const bed=document.getElementById("bed");
 ["dragleave","drop"].forEach(function(t){bed.addEventListener(t,function(e){e.preventDefault();if(t==="drop"||e.target===bed)bed.classList.remove("over")})});
 bed.addEventListener("drop",function(e){const f=e.dataTransfer.files[0];if(f)loadFile(f)});
 
-/* ---------- pan & wheel ---------- */
-let dragging=false,lx=0,ly=0;
-card.addEventListener("pointerdown",function(e){
-  if(state.mode!=="photo")return;
-  dragging=true;lx=e.clientX;ly=e.clientY;hold.classList.add("dragging");
-  card.setPointerCapture(e.pointerId);
+/* ---------- 카드 위에서 직접 조작 ---------- */
+const ui=document.getElementById("ui");
+const uctx=ui.getContext("2d");
+const HANDLE=26;                       /* 핸들 한 변 (카드 좌표계) */
+let sel=-1,drag=null;
+
+function loadPresetArt(){
+  const p=byId[state.preset],src=(p&&p.art)||[];
+  state.art=src.map(function(it){return {key:it.key,x:it.x,y:it.y,h:it.h}});
+  sel=-1;
+}
+function artBox(it){
+  const m=cardArt[it.key];
+  if(!m||!m.naturalWidth)return null;
+  const h=H*it.h;
+  return {x:W*it.x,y:H*it.y,w:h*m.naturalWidth/m.naturalHeight,h:h};
+}
+function corners(b){
+  return [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]];
+}
+function drawUI(){
+  uctx.setTransform(1,0,0,1,0,0);
+  uctx.clearRect(0,0,W,H);
+  if(state.mode!=="preset"||sel<0||!state.art[sel])return;
+  const b=artBox(state.art[sel]);if(!b)return;
+  uctx.save();
+  uctx.strokeStyle="#C79A3E";uctx.lineWidth=4;uctx.setLineDash([18,12]);
+  uctx.strokeRect(b.x,b.y,b.w,b.h);
+  uctx.setLineDash([]);
+  corners(b).forEach(function(c){
+    uctx.fillStyle="#FFFFFF";uctx.fillRect(c[0]-HANDLE/2,c[1]-HANDLE/2,HANDLE,HANDLE);
+    uctx.strokeRect(c[0]-HANDLE/2,c[1]-HANDLE/2,HANDLE,HANDLE);
+  });
+  uctx.restore();
+}
+function toCard(e){
+  const r=ui.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
+}
+function hitHandle(p){
+  if(sel<0||!state.art[sel])return -1;
+  const b=artBox(state.art[sel]);if(!b)return -1;
+  const cs=corners(b);
+  for(let i=0;i<4;i++){
+    if(Math.abs(p.x-cs[i][0])<=HANDLE&&Math.abs(p.y-cs[i][1])<=HANDLE)return i;
+  }
+  return -1;
+}
+function hitArt(p){
+  for(let i=state.art.length-1;i>=0;i--){
+    const b=artBox(state.art[i]);
+    if(b&&p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)return i;
+  }
+  return -1;
+}
+const CURSORS=["nwse-resize","nesw-resize","nesw-resize","nwse-resize"];
+
+ui.addEventListener("pointerdown",function(e){
+  const p=toCard(e);
+  if(state.mode==="preset"){
+    const hi=hitHandle(p);
+    if(hi>=0){
+      const b=artBox(state.art[sel]);
+      drag={type:"size",i:sel,corner:hi,
+            ax:(hi===0||hi===2)?b.x+b.w:b.x,
+            ay:(hi===0||hi===1)?b.y+b.h:b.y,
+            ar:b.w/b.h};
+      ui.setPointerCapture(e.pointerId);return;
+    }
+    const ai=hitArt(p);
+    if(ai>=0){
+      sel=ai;drawUI();
+      drag={type:"move",i:ai,px:p.x,py:p.y};
+      ui.setPointerCapture(e.pointerId);return;
+    }
+    if(sel>=0){sel=-1;drawUI();}
+  }
+  if(state.mode==="photo"){
+    drag={type:"pan",px:e.clientX,py:e.clientY};
+    hold.classList.add("dragging");
+    ui.setPointerCapture(e.pointerId);
+  }
 });
-card.addEventListener("pointermove",function(e){
-  if(!dragging)return;
-  const k=W/card.getBoundingClientRect().width;
-  state.ox+=(e.clientX-lx)*k;state.oy+=(e.clientY-ly)*k;
-  lx=e.clientX;ly=e.clientY;render();
+ui.addEventListener("pointermove",function(e){
+  if(!drag){
+    let c="default";
+    if(state.mode==="photo")c="grab";
+    else if(state.mode==="preset"){
+      const p=toCard(e),hi=hitHandle(p);
+      c=hi>=0?CURSORS[hi]:(hitArt(p)>=0?"move":"default");
+    }
+    ui.style.cursor=c;return;
+  }
+  if(drag.type==="pan"){
+    const k=W/ui.getBoundingClientRect().width;
+    state.ox+=(e.clientX-drag.px)*k;state.oy+=(e.clientY-drag.py)*k;
+    drag.px=e.clientX;drag.py=e.clientY;render();return;
+  }
+  const p=toCard(e),it=state.art[drag.i];
+  if(drag.type==="move"){
+    it.x+=(p.x-drag.px)/W;it.y+=(p.y-drag.py)/H;
+    drag.px=p.x;drag.py=p.y;
+  }else{
+    const nh=Math.max(24,Math.max(Math.abs(p.y-drag.ay),Math.abs(p.x-drag.ax)/drag.ar));
+    const nw=nh*drag.ar;
+    it.h=nh/H;
+    it.x=((drag.corner===0||drag.corner===2)?drag.ax-nw:drag.ax)/W;
+    it.y=((drag.corner===0||drag.corner===1)?drag.ay-nh:drag.ay)/H;
+  }
+  render();drawUI();
 });
 ["pointerup","pointercancel"].forEach(function(t){
-  card.addEventListener(t,function(){dragging=false;hold.classList.remove("dragging")});
+  ui.addEventListener(t,function(){drag=null;hold.classList.remove("dragging")});
 });
-card.addEventListener("wheel",function(e){
+ui.addEventListener("wheel",function(e){
   if(state.mode!=="photo")return;
   e.preventDefault();
-  const z=Math.min(4,Math.max(1,state.zoom*(e.deltaY<0?1.06:1/1.06)));
-  state.zoom=z;
-  const s=document.getElementById("zoom");
-  s.value=Math.round(z*100);document.getElementById("v-zoom").textContent=Math.round(z*100)+"%";
+  state.zoom=Math.min(4,Math.max(1,state.zoom*(e.deltaY<0?1.06:1/1.06)));
   render();
 },{passive:false});
 
@@ -784,14 +853,15 @@ document.getElementById("export").addEventListener("click",function(){
   img.onload=function(){
     cardArt[e[0]]=img;presetCacheKey=null;
     repaintThumbs.forEach(function(f){f()});
-    render();
+    render();drawUI();
   };
   img.src=e[1];
 });
 
 /* ---------- boot ---------- */
 syncCorner();
-render();
+loadPresetArt();
+render();drawUI();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){
   presetCacheKey=null;                 /* 워드마크가 대체 서체로 캐시됐을 수 있음 */
   repaintThumbs.forEach(function(f){f()});
