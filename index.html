@@ -398,7 +398,14 @@ function paintArt(ctx,w,h,items){
     const m=cardArt[it.key];
     if(!m||!m.complete||!m.naturalWidth)return;
     const ah=h*it.h,aw=ah*m.naturalWidth/m.naturalHeight;
-    ctx.drawImage(m,w*it.x,h*it.y,aw,ah);
+    const x=w*it.x,y=h*it.y;
+    if(it.r){
+      ctx.save();
+      ctx.translate(x+aw/2,y+ah/2);
+      ctx.rotate(it.r*Math.PI/180);
+      ctx.drawImage(m,-aw/2,-ah/2,aw,ah);
+      ctx.restore();
+    }else ctx.drawImage(m,x,y,aw,ah);
   });
 }
 const cardArt={};
@@ -683,9 +690,37 @@ bed.addEventListener("drop",function(e){const f=e.dataTransfer.files[0];if(f)loa
 /* ---------- 카드 위에서 직접 조작 ---------- */
 const ui=document.getElementById("ui");
 const uctx=ui.getContext("2d");
-const HANDLE=26;                       /* 핸들 한 변 (카드 좌표계) */
-const SNAP=16;                         /* 흡착 거리 */
+const HANDLE=26;                 /* 모서리 핸들 한 변 */
+const ROT_OFF=64,ROT_R=15;       /* 회전 핸들: 위쪽 거리와 반지름 */
+const ROT=4;                     /* 회전 핸들의 인덱스 */
+const SNAP=16;                   /* 흡착 거리 */
 let sel=-1,drag=null,guides=[];
+
+function loadPresetArt(){
+  const p=byId[state.preset],src=(p&&p.art)||[];
+  state.art=src.map(function(it){
+    return {key:it.key,x:it.x,y:it.y,h:it.h,r:it.r||0};
+  });
+  sel=-1;guides=[];
+}
+function artBox(it){
+  const m=cardArt[it.key];
+  if(!m||!m.naturalWidth)return null;
+  const h=H*it.h;
+  return {x:W*it.x,y:H*it.y,w:h*m.naturalWidth/m.naturalHeight,h:h};
+}
+function corners(b){
+  return [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]];
+}
+function spin(px,py,cx,cy,rad){
+  const dx=px-cx,dy=py-cy,c=Math.cos(rad),s2=Math.sin(rad);
+  return {x:cx+dx*c-dy*s2,y:cy+dx*s2+dy*c};
+}
+/* 카드 좌표 → 회전을 되돌린 요소 좌표 */
+function toLocal(p,b,deg){
+  if(!deg)return p;
+  return spin(p.x,p.y,b.x+b.w/2,b.y+b.h/2,-deg*Math.PI/180);
+}
 
 /* 카드 가장자리·중심선, 그리고 다른 아트워크의 모서리·중심에 달라붙는다 */
 function applySnap(i,b){
@@ -712,20 +747,6 @@ function applySnap(i,b){
   return b;
 }
 
-function loadPresetArt(){
-  const p=byId[state.preset],src=(p&&p.art)||[];
-  state.art=src.map(function(it){return {key:it.key,x:it.x,y:it.y,h:it.h}});
-  sel=-1;
-}
-function artBox(it){
-  const m=cardArt[it.key];
-  if(!m||!m.naturalWidth)return null;
-  const h=H*it.h;
-  return {x:W*it.x,y:H*it.y,w:h*m.naturalWidth/m.naturalHeight,h:h};
-}
-function corners(b){
-  return [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]];
-}
 function drawUI(){
   uctx.setTransform(1,0,0,1,0,0);
   uctx.clearRect(0,0,W,H);
@@ -742,13 +763,17 @@ function drawUI(){
     uctx.restore();
   }
   if(sel<0||!state.art[sel])return;
-  const b=artBox(state.art[sel]);if(!b)return;
+  const it=state.art[sel],b=artBox(it);if(!b)return;
+  const cx=b.x+b.w/2,cy=b.y+b.h/2;
   uctx.save();
-  uctx.strokeStyle="#C79A3E";uctx.lineWidth=4;uctx.setLineDash([18,12]);
-  uctx.strokeRect(b.x,b.y,b.w,b.h);
-  uctx.setLineDash([]);
+  uctx.translate(cx,cy);uctx.rotate((it.r||0)*Math.PI/180);uctx.translate(-cx,-cy);
+  uctx.strokeStyle="#C79A3E";uctx.lineWidth=4;
+  uctx.setLineDash([18,12]);uctx.strokeRect(b.x,b.y,b.w,b.h);uctx.setLineDash([]);
+  uctx.beginPath();uctx.moveTo(cx,b.y);uctx.lineTo(cx,b.y-ROT_OFF);uctx.stroke();
+  uctx.fillStyle="#FFFFFF";
+  uctx.beginPath();uctx.arc(cx,b.y-ROT_OFF,ROT_R,0,6.2832);uctx.fill();uctx.stroke();
   corners(b).forEach(function(c){
-    uctx.fillStyle="#FFFFFF";uctx.fillRect(c[0]-HANDLE/2,c[1]-HANDLE/2,HANDLE,HANDLE);
+    uctx.fillRect(c[0]-HANDLE/2,c[1]-HANDLE/2,HANDLE,HANDLE);
     uctx.strokeRect(c[0]-HANDLE/2,c[1]-HANDLE/2,HANDLE,HANDLE);
   });
   uctx.restore();
@@ -759,17 +784,21 @@ function toCard(e){
 }
 function hitHandle(p){
   if(sel<0||!state.art[sel])return -1;
-  const b=artBox(state.art[sel]);if(!b)return -1;
+  const it=state.art[sel],b=artBox(it);if(!b)return -1;
+  const q=toLocal(p,b,it.r||0);
+  if(Math.hypot(q.x-(b.x+b.w/2),q.y-(b.y-ROT_OFF))<=ROT_R+12)return ROT;
   const cs=corners(b);
   for(let i=0;i<4;i++){
-    if(Math.abs(p.x-cs[i][0])<=HANDLE&&Math.abs(p.y-cs[i][1])<=HANDLE)return i;
+    if(Math.abs(q.x-cs[i][0])<=HANDLE&&Math.abs(q.y-cs[i][1])<=HANDLE)return i;
   }
   return -1;
 }
 function hitArt(p){
   for(let i=state.art.length-1;i>=0;i--){
-    const b=artBox(state.art[i]);
-    if(b&&p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h)return i;
+    const it=state.art[i],b=artBox(it);
+    if(!b)continue;
+    const q=toLocal(p,b,it.r||0);
+    if(q.x>=b.x&&q.x<=b.x+b.w&&q.y>=b.y&&q.y<=b.y+b.h)return i;
   }
   return -1;
 }
@@ -779,12 +808,20 @@ ui.addEventListener("pointerdown",function(e){
   const p=toCard(e);
   if(state.mode==="preset"){
     const hi=hitHandle(p);
+    if(hi===ROT){
+      const it=state.art[sel],b=artBox(it);
+      const cx=b.x+b.w/2,cy=b.y+b.h/2;
+      drag={type:"rot",i:sel,cx:cx,cy:cy,r0:it.r||0,
+            a0:Math.atan2(p.y-cy,p.x-cx)};
+      ui.setPointerCapture(e.pointerId);return;
+    }
     if(hi>=0){
-      const b=artBox(state.art[sel]);
-      drag={type:"size",i:sel,corner:hi,
-            ax:(hi===0||hi===2)?b.x+b.w:b.x,
-            ay:(hi===0||hi===1)?b.y+b.h:b.y,
-            ar:b.w/b.h};
+      const it=state.art[sel],b=artBox(it),deg=it.r||0;
+      const cx=b.x+b.w/2,cy=b.y+b.h/2,rad=deg*Math.PI/180;
+      const A=corners(b)[3-hi];                    /* 마주보는 모서리를 고정점으로 */
+      const a=spin(A[0],A[1],cx,cy,rad);
+      drag={type:"size",i:sel,r:deg,ar:b.w/b.h,ax:a.x,ay:a.y,
+            sx:(hi===1||hi===3)?1:-1,sy:(hi===2||hi===3)?1:-1};
       ui.setPointerCapture(e.pointerId);return;
     }
     const ai=hitArt(p);
@@ -808,7 +845,7 @@ ui.addEventListener("pointermove",function(e){
     if(state.mode==="photo")c="grab";
     else if(state.mode==="preset"){
       const p=toCard(e),hi=hitHandle(p);
-      c=hi>=0?CURSORS[hi]:(hitArt(p)>=0?"move":"default");
+      c=hi===ROT?"grab":(hi>=0?CURSORS[hi]:(hitArt(p)>=0?"move":"default"));
     }
     ui.style.cursor=c;return;
   }
@@ -824,12 +861,20 @@ ui.addEventListener("pointermove",function(e){
     drag.px=p.x;drag.py=p.y;
     const b=applySnap(drag.i,{x:drag.rx,y:drag.ry,w:drag.w,h:drag.h});
     it.x=b.x/W;it.y=b.y/H;
+  }else if(drag.type==="rot"){
+    const d=Math.atan2(p.y-drag.cy,p.x-drag.cx)-drag.a0;
+    let deg=(drag.r0+d*180/Math.PI)%360;
+    if(deg>180)deg-=360; if(deg<-180)deg+=360;
+    it.r=deg;
   }else{
-    const nh=Math.max(24,Math.max(Math.abs(p.y-drag.ay),Math.abs(p.x-drag.ax)/drag.ar));
+    /* 고정점을 카드 좌표에 묶어두고, 회전 축에서 새 크기를 잰다 */
+    const v=spin(p.x,p.y,drag.ax,drag.ay,-drag.r*Math.PI/180);
+    const lx=v.x-drag.ax,ly=v.y-drag.ay;
+    const nh=Math.max(24,Math.max(Math.abs(ly),Math.abs(lx)/drag.ar));
     const nw=nh*drag.ar;
-    it.h=nh/H;
-    it.x=((drag.corner===0||drag.corner===2)?drag.ax-nw:drag.ax)/W;
-    it.y=((drag.corner===0||drag.corner===1)?drag.ay-nh:drag.ay)/H;
+    const c=spin(drag.ax+drag.sx*nw/2,drag.ay+drag.sy*nh/2,
+                 drag.ax,drag.ay,drag.r*Math.PI/180);
+    it.h=nh/H;it.x=(c.x-nw/2)/W;it.y=(c.y-nh/2)/H;
   }
   render();drawUI();
 });
