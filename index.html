@@ -96,10 +96,19 @@ h1{
 .tray{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:12px}
 .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
 .preset{
+  position:relative;
   border:1px solid var(--line);background:none;padding:0;border-radius:8px;
   overflow:hidden;cursor:pointer;display:flex;flex-direction:column;
   font:inherit;color:var(--ink-2);text-align:left;
 }
+.add-badge{
+  position:absolute;top:4px;right:4px;width:19px;height:19px;padding:0;
+  border:1px solid var(--line);border-radius:6px;
+  background:var(--panel);color:var(--ink-2);
+  display:grid;place-items:center;cursor:pointer;
+}
+.add-badge:hover{border-color:var(--foil-bg);background:var(--foil-tint);color:var(--foil)}
+.add-badge svg{width:11px;height:11px;display:block}
 .preset canvas{display:block;width:100%;height:auto;aspect-ratio:1536/969}
 .preset span{
   padding:5px 7px;font-family:var(--mono);font-size:10px;letter-spacing:.04em;
@@ -114,12 +123,6 @@ h1{
 .mark img{max-width:100%;max-height:100%;display:block}
 .mark:hover{border-color:var(--ink-3)}
 .mark[aria-pressed="true"]{border-color:var(--foil-bg);background:var(--foil-tint)}
-.preset-add{
-  border:1px dashed var(--line);background:var(--panel-2);border-radius:8px;
-  cursor:pointer;color:var(--ink-3);display:grid;place-items:center;min-height:62px;
-}
-.preset-add:hover{border-color:var(--foil-bg);color:var(--foil)}
-.preset-add svg{width:24px;height:24px;display:block}
 .preset[aria-pressed="true"]{border-color:var(--foil-bg);box-shadow:0 0 0 1px var(--foil-bg)}
 .preset[aria-pressed="true"] span{background:var(--foil-tint);color:var(--foil);font-weight:600}
 
@@ -228,14 +231,7 @@ input[type=color]{
       </div>
 
       <div class="tray">
-        <div class="presets" id="presets">
-          <button class="preset-add" type="button" id="pick" aria-label="사진 불러오기">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
+        <div class="presets" id="presets"></div>
         <input type="file" id="file" class="hidden-file" accept="image/*">
         <input type="file" id="photofile" class="hidden-file" accept="image/*">
       </div>
@@ -592,76 +588,93 @@ function drawText(){
   ctx.restore();
 }
 
-/* ---------- preset thumbnails ---------- */
+/* ---------- preset tray ---------- */
 const tray=document.getElementById("presets");
 const repaintThumbs=[];
-PRESETS.forEach(function(p){
-  const b=document.createElement("button");
-  b.className="preset";b.type="button";b.dataset.id=p.id;
-  b.setAttribute("aria-pressed",p.id===state.preset);
+const fileInput=document.getElementById("file");
+const photoInput=document.getElementById("photofile");
+
+/* 타일 하나: 본체는 바탕을 고르고, 우상단 + 는 그 위에 이미지를 얹는다 */
+function makeTile(name,paint,onPick){
+  const t=document.createElement("div");
+  t.className="preset";t.setAttribute("role","button");t.tabIndex=0;
+  t.setAttribute("aria-pressed","false");
   const c=document.createElement("canvas");c.width=256;c.height=161;
   const cc=c.getContext("2d");
-  const paint=function(){
+  const repaint=function(){paint(cc)};
+  repaint();repaintThumbs.push(repaint);
+  const label=document.createElement("span");label.textContent=name;
+  const add=document.createElement("button");
+  add.type="button";add.className="add-badge";
+  add.setAttribute("aria-label",name+" 위에 이미지 얹기");
+  add.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+
+    '<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" '+
+    'stroke-width="3" stroke-linecap="round"/></svg>';
+  add.addEventListener("click",function(ev){
+    ev.stopPropagation();
+    if(t.getAttribute("aria-pressed")!=="true")onPick();
+    fileInput.click();
+  });
+  t.appendChild(c);t.appendChild(label);t.appendChild(add);
+  t.addEventListener("click",onPick);
+  t.addEventListener("keydown",function(ev){
+    if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();onPick()}
+  });
+  t.repaint=repaint;
+  return t;
+}
+function markTile(active){
+  [].forEach.call(tray.querySelectorAll(".preset"),function(n){
+    n.setAttribute("aria-pressed",n===active);
+  });
+}
+
+/* 사진 — 트레이 맨 앞 */
+const photoTile=makeTile("사진",function(cc){
+  cc.setTransform(1,0,0,1,0,0);
+  if(state.mode==="photo"&&state.photo){
+    const m=state.photo,sc=Math.max(256/m.naturalWidth,161/m.naturalHeight);
+    const dw=m.naturalWidth*sc,dh=m.naturalHeight*sc;
+    cc.drawImage(m,(256-dw)/2,(161-dh)/2,dw,dh);
+    return;
+  }
+  cc.fillStyle="#E7E8EB";cc.fillRect(0,0,256,161);
+  cc.fillStyle="#AFB3BB";
+  cc.beginPath();cc.arc(80,52,16,0,6.2832);cc.fill();
+  cc.beginPath();cc.moveTo(44,124);cc.lineTo(104,68);cc.lineTo(164,124);cc.closePath();cc.fill();
+  cc.beginPath();cc.moveTo(132,124);cc.lineTo(176,90);cc.lineTo(220,124);cc.closePath();cc.fill();
+},function(){photoInput.click()});
+tray.appendChild(photoTile);
+
+photoInput.addEventListener("change",function(){
+  const f=photoInput.files[0];photoInput.value="";
+  if(!f||!f.type.startsWith("image/"))return;
+  const url=URL.createObjectURL(f),img=new Image();
+  img.onload=function(){
+    state.photo=img;state.mode="photo";
+    state.ox=0;state.oy=0;state.zoom=1;
+    state.art=[];sel=-1;guides=[];undo.length=0;
+    markTile(photoTile);photoTile.repaint();
+    render();drawUI();
+  };
+  img.onerror=function(){URL.revokeObjectURL(url)};
+  img.src=url;
+});
+
+PRESETS.forEach(function(p){
+  const t=makeTile(p.name,function(cc){
     cc.setTransform(1,0,0,1,0,0);cc.clearRect(0,0,256,161);
     cc.save();cc.scale(256/W,161/H);
     p.draw(cc,W,H,mulberry32(p.seed),true);cc.restore();
-  };
-  paint();repaintThumbs.push(paint);
-  const s=document.createElement("span");s.textContent=p.name;
-  b.appendChild(c);b.appendChild(s);
-  b.addEventListener("click",function(){
+  },function(){
     state.preset=p.id;state.mode="preset";
-    loadPresetArt();
-    [].forEach.call(tray.querySelectorAll(".preset"),function(n){n.setAttribute("aria-pressed",n===b)});
+    loadPresetArt();markTile(t);
     render();drawUI();
   });
-  tray.appendChild(b);
+  t.dataset.id=p.id;
+  if(p.id===state.preset)t.setAttribute("aria-pressed","true");
+  tray.appendChild(t);
 });
-
-/* 트레이는 "카드 바탕"을 고르는 곳이므로 사진도 여기에 둔다 */
-const photoTile=document.createElement("button");
-const photoInput=document.getElementById("photofile");
-(function(){
-  photoTile.className="preset";photoTile.type="button";photoTile.dataset.id="__photo";
-  photoTile.setAttribute("aria-pressed","false");
-  const c=document.createElement("canvas");c.width=256;c.height=161;
-  const cc=c.getContext("2d");
-  const paint=function(){
-    cc.setTransform(1,0,0,1,0,0);
-    if(state.mode==="photo"&&state.photo){
-      const m=state.photo,sc=Math.max(256/m.naturalWidth,161/m.naturalHeight);
-      const dw=m.naturalWidth*sc,dh=m.naturalHeight*sc;
-      cc.drawImage(m,(256-dw)/2,(161-dh)/2,dw,dh);
-      return;
-    }
-    cc.fillStyle="#E7E8EB";cc.fillRect(0,0,256,161);
-    cc.fillStyle="#AFB3BB";
-    cc.beginPath();cc.arc(80,52,16,0,6.2832);cc.fill();
-    cc.beginPath();cc.moveTo(44,124);cc.lineTo(104,68);cc.lineTo(164,124);cc.closePath();cc.fill();
-    cc.beginPath();cc.moveTo(132,124);cc.lineTo(176,90);cc.lineTo(220,124);cc.closePath();cc.fill();
-  };
-  paint();repaintThumbs.push(paint);
-  const s2=document.createElement("span");s2.textContent="사진";
-  photoTile.appendChild(c);photoTile.appendChild(s2);
-  photoTile.addEventListener("click",function(){photoInput.click()});
-  photoInput.addEventListener("change",function(){
-    const f=photoInput.files[0];photoInput.value="";
-    if(!f||!f.type.startsWith("image/"))return;
-    const url=URL.createObjectURL(f),img=new Image();
-    img.onload=function(){
-      state.photo=img;state.mode="photo";
-      state.ox=0;state.oy=0;state.zoom=1;
-      state.art=[];sel=-1;guides=[];undo.length=0;
-      [].forEach.call(tray.querySelectorAll(".preset"),function(n){
-        n.setAttribute("aria-pressed",n===photoTile);
-      });
-      paint();render();drawUI();
-    };
-    img.onerror=function(){URL.revokeObjectURL(url)};
-    img.src=url;
-  });
-  tray.appendChild(photoTile);
-})();
 
 /* ---------- position grid ---------- */
 const posGrid=document.getElementById("pos");
@@ -712,9 +725,7 @@ document.getElementById("resetadj").addEventListener("click",function(){
   render();
 });
 
-/* ---------- photo input ---------- */
-const fileInput=document.getElementById("file");
-document.getElementById("pick").addEventListener("click",function(){fileInput.click()});
+/* ---------- 얹는 이미지 ---------- */
 fileInput.addEventListener("change",function(){
   if(fileInput.files[0])addOverlay(fileInput.files[0]);
   fileInput.value="";                 /* 같은 파일을 다시 골라도 열리도록 */
