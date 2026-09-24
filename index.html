@@ -695,13 +695,24 @@ const ROT_OFF=64,ROT_R=15;       /* 회전 핸들: 위쪽 거리와 반지름 */
 const ROT=4;                     /* 회전 핸들의 인덱스 */
 const SNAP=16;                   /* 흡착 거리 */
 let sel=-1,drag=null,guides=[];
+const undo=[];                   /* 편집 직전 배치 스냅샷 */
+
+function artSnapshot(){
+  return state.art.map(function(it){
+    return {key:it.key,x:it.x,y:it.y,h:it.h,r:it.r||0};
+  });
+}
+function pushUndo(){
+  undo.push(artSnapshot());
+  if(undo.length>60)undo.shift();
+}
 
 function loadPresetArt(){
   const p=byId[state.preset],src=(p&&p.art)||[];
   state.art=src.map(function(it){
     return {key:it.key,x:it.x,y:it.y,h:it.h,r:it.r||0};
   });
-  sel=-1;guides=[];
+  sel=-1;guides=[];undo.length=0;
 }
 function artBox(it){
   const m=cardArt[it.key];
@@ -809,6 +820,7 @@ ui.addEventListener("pointerdown",function(e){
   if(state.mode==="preset"){
     const hi=hitHandle(p);
     if(hi===ROT){
+      pushUndo();
       const it=state.art[sel],b=artBox(it);
       const cx=b.x+b.w/2,cy=b.y+b.h/2;
       drag={type:"rot",i:sel,cx:cx,cy:cy,r0:it.r||0,
@@ -816,6 +828,7 @@ ui.addEventListener("pointerdown",function(e){
       ui.setPointerCapture(e.pointerId);return;
     }
     if(hi>=0){
+      pushUndo();
       const it=state.art[sel],b=artBox(it),deg=it.r||0;
       const cx=b.x+b.w/2,cy=b.y+b.h/2,rad=deg*Math.PI/180;
       const A=corners(b)[3-hi];                    /* 마주보는 모서리를 고정점으로 */
@@ -826,7 +839,7 @@ ui.addEventListener("pointerdown",function(e){
     }
     const ai=hitArt(p);
     if(ai>=0){
-      sel=ai;drawUI();
+      sel=ai;drawUI();pushUndo();
       const b=artBox(state.art[ai]);
       drag={type:"move",i:ai,px:p.x,py:p.y,rx:b.x,ry:b.y,w:b.w,h:b.h};
       ui.setPointerCapture(e.pointerId);return;
@@ -880,8 +893,24 @@ ui.addEventListener("pointermove",function(e){
 });
 ["pointerup","pointercancel"].forEach(function(t){
   ui.addEventListener(t,function(){
+    if(drag&&drag.type!=="pan"&&undo.length&&
+       JSON.stringify(undo[undo.length-1])===JSON.stringify(artSnapshot())){
+      undo.pop();                /* 값이 그대로면 되돌릴 게 없다 */
+    }
     drag=null;guides=[];hold.classList.remove("dragging");drawUI();
   });
+});
+
+window.addEventListener("keydown",function(e){
+  if(!(e.metaKey||e.ctrlKey)||e.shiftKey)return;
+  if(e.key!=="z"&&e.key!=="Z")return;
+  const t=e.target,tag=t&&t.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;   /* 문구 입력 중엔 양보 */
+  if(!undo.length)return;
+  e.preventDefault();
+  state.art=undo.pop();
+  if(sel>=state.art.length)sel=-1;
+  render();drawUI();
 });
 ui.addEventListener("wheel",function(e){
   if(state.mode!=="photo")return;
